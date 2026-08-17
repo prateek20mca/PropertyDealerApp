@@ -70,7 +70,7 @@ jobs:
           include ':app'
           EOF
 
-      - name: Fix colors.xml - add missing colors
+      - name: Fix colors.xml
         working-directory: PropertyDealerApp
         run: |
           cat > app/src/main/res/values/colors.xml << 'EOF'
@@ -94,11 +94,10 @@ jobs:
           </resources>
           EOF
 
-      - name: Fix adaptive icons - move to v26 folder
+      - name: Fix adaptive icons
         working-directory: PropertyDealerApp
         run: |
           mkdir -p app/src/main/res/mipmap-anydpi-v26
-
           cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
@@ -106,33 +105,59 @@ jobs:
               <foreground android:drawable="@drawable/ic_property"/>
           </adaptive-icon>
           EOF
-
-          cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@color/colorPrimary"/>
-              <foreground android:drawable="@drawable/ic_property"/>
-          </adaptive-icon>
-          EOF
-
+          cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
+             app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
           for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-            cat > app/src/main/res/mipmap-${density}/ic_launcher.xml << 'EOF2'
-          <?xml version="1.0" encoding="utf-8"?>
-          <selector xmlns:android="http://schemas.android.com/apk/res/android"/>
-          EOF2
+            echo '<?xml version="1.0" encoding="utf-8"?><resources/>' > \
+              app/src/main/res/mipmap-${density}/ic_launcher.xml
             cp app/src/main/res/mipmap-${density}/ic_launcher.xml \
                app/src/main/res/mipmap-${density}/ic_launcher_round.xml
           done
 
-      - name: Fix AndroidManifest - remove package attribute
+      - name: Fix AndroidManifest
         working-directory: PropertyDealerApp
         run: |
           sed -i 's/package="com.propertydealer.app"//' \
             app/src/main/AndroidManifest.xml
 
+      - name: Fix PropertyDetailActivity - action_share_dealer
+        working-directory: PropertyDealerApp
+        run: |
+          sed -i 's/R.id.action_share_dealer/R.id.action_full_report/g' \
+            app/src/main/java/com/propertydealer/app/ui/property/PropertyDetailActivity.kt
+
+      - name: Fix AddEditPropertyActivity - remove missing binding refs
+        working-directory: PropertyDealerApp
+        run: |
+          sed -i '/editTextSellerAskingPrice/d' \
+            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt
+          sed -i '/editTextCommissionPercent/d' \
+            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt
+          sed -i '/commissionPct/d' \
+            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt
+          sed -i '/commissionAmt/d' \
+            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt
+          sed -i '/getFilteredProperties/d' \
+            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt
+
+      - name: Fix MainActivity - remove missing ViewModel refs
+        working-directory: PropertyDealerApp
+        run: |
+          sed -i '/setSearchQuery/d' \
+            app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt
+          sed -i '/setStatusFilter/d' \
+            app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt
+          sed -i '/setTypeFilter/d' \
+            app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt
+          sed -i '/operationStatus/d' \
+            app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt
+          sed -i '/getFilteredProperties/d' \
+            app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt
+
       - name: Install Gradle 8.0
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.0-bin.zip -O gradle.zip
+          wget -q https://services.gradle.org/distributions/gradle-8.0-bin.zip \
+            -O gradle.zip
           unzip -q gradle.zip -d /opt/gradle
 
       - name: Generate Gradle Wrapper
