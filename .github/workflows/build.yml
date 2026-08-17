@@ -18,6 +18,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Accept SDK licenses
+        run: yes | sdkmanager --licenses || true
+
       - name: Extract ZIP
         run: unzip PropertyDealerApp_v2.zip
 
@@ -25,14 +28,21 @@ jobs:
         run: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > PropertyDealerApp/local.properties
 
+      - name: Install Gradle 8.0
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.0-bin.zip -O gradle.zip
+          unzip -q gradle.zip -d /opt/gradle
+          echo "/opt/gradle/gradle-8.0/bin" >> $GITHUB_PATH
+
       - name: Generate Gradle Wrapper
         working-directory: PropertyDealerApp
         run: |
-          gradle wrapper --gradle-version 8.0
+          /opt/gradle/gradle-8.0/bin/gradle wrapper --gradle-version 8.0
           chmod +x gradlew
 
-      - name: Accept SDK licenses
-        run: yes | sdkmanager --licenses || true
+      - name: Install build tools
+        run: |
+          sdkmanager "build-tools;34.0.0" "platforms;android-34" || true
 
       - name: Build Debug APK
         working-directory: PropertyDealerApp
