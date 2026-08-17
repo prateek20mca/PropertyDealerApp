@@ -21,12 +21,54 @@ jobs:
       - name: Accept SDK licenses
         run: yes | sdkmanager --licenses || true
 
+      - name: Install build tools
+        run: sdkmanager "build-tools;34.0.0" "platforms;android-34" || true
+
       - name: Extract ZIP
         run: unzip PropertyDealerApp_v2.zip
 
       - name: Set Android SDK path
         run: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > PropertyDealerApp/local.properties
+
+      - name: Fix build.gradle for Gradle 8
+        working-directory: PropertyDealerApp
+        run: |
+          cat > build.gradle << 'EOF'
+          buildscript {
+              ext.kotlin_version = '1.9.0'
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.1.0'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+              }
+          }
+          EOF
+
+      - name: Fix settings.gradle for Gradle 8
+        working-directory: PropertyDealerApp
+        run: |
+          cat > settings.gradle << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "PropertyDealerApp"
+          include ':app'
+          EOF
 
       - name: Install Gradle 8.0
         run: |
@@ -39,10 +81,6 @@ jobs:
         run: |
           /opt/gradle/gradle-8.0/bin/gradle wrapper --gradle-version 8.0
           chmod +x gradlew
-
-      - name: Install build tools
-        run: |
-          sdkmanager "build-tools;34.0.0" "platforms;android-34" || true
 
       - name: Build Debug APK
         working-directory: PropertyDealerApp
