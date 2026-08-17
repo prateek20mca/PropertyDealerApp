@@ -24,21 +24,19 @@ jobs:
       - name: Set Android SDK path
         run: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > PropertyDealerApp/local.properties
-          cat PropertyDealerApp/local.properties
 
-      - name: List extracted files
-        run: ls -la PropertyDealerApp/
-
-      - name: Make gradlew executable
+      - name: Generate Gradle Wrapper
         working-directory: PropertyDealerApp
-        run: chmod +x gradlew
+        run: |
+          gradle wrapper --gradle-version 8.0
+          chmod +x gradlew
 
       - name: Accept SDK licenses
         run: yes | sdkmanager --licenses || true
 
       - name: Build Debug APK
         working-directory: PropertyDealerApp
-        run: ./gradlew assembleDebug --stacktrace --info
+        run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
