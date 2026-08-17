@@ -31,7 +31,7 @@ jobs:
         run: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > PropertyDealerApp/local.properties
 
-      - name: Fix build.gradle for Gradle 8
+      - name: Fix build.gradle
         working-directory: PropertyDealerApp
         run: |
           cat > build.gradle << 'EOF'
@@ -48,7 +48,7 @@ jobs:
           }
           EOF
 
-      - name: Fix settings.gradle for Gradle 8
+      - name: Fix settings.gradle
         working-directory: PropertyDealerApp
         run: |
           cat > settings.gradle << 'EOF'
@@ -70,11 +70,70 @@ jobs:
           include ':app'
           EOF
 
+      - name: Fix colors.xml - add missing colors
+        working-directory: PropertyDealerApp
+        run: |
+          cat > app/src/main/res/values/colors.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="colorPrimary">#1A237E</color>
+              <color name="colorPrimaryDark">#0D1453</color>
+              <color name="colorAccent">#FF6F00</color>
+              <color name="colorAccentLight">#FFD54F</color>
+              <color name="white">#FFFFFF</color>
+              <color name="black">#000000</color>
+              <color name="cardBackground">#FFFFFF</color>
+              <color name="background">#F5F5F5</color>
+              <color name="textPrimary">#212121</color>
+              <color name="textSecondary">#757575</color>
+              <color name="divider">#E0E0E0</color>
+              <color name="statusAvailable">#2E7D32</color>
+              <color name="statusSold">#1565C0</color>
+              <color name="statusPending">#E65100</color>
+              <color name="statusNegotiating">#6A1B9A</color>
+          </resources>
+          EOF
+
+      - name: Fix adaptive icons - move to v26 folder
+        working-directory: PropertyDealerApp
+        run: |
+          mkdir -p app/src/main/res/mipmap-anydpi-v26
+
+          cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/colorPrimary"/>
+              <foreground android:drawable="@drawable/ic_property"/>
+          </adaptive-icon>
+          EOF
+
+          cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/colorPrimary"/>
+              <foreground android:drawable="@drawable/ic_property"/>
+          </adaptive-icon>
+          EOF
+
+          for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            cat > app/src/main/res/mipmap-${density}/ic_launcher.xml << 'EOF2'
+          <?xml version="1.0" encoding="utf-8"?>
+          <selector xmlns:android="http://schemas.android.com/apk/res/android"/>
+          EOF2
+            cp app/src/main/res/mipmap-${density}/ic_launcher.xml \
+               app/src/main/res/mipmap-${density}/ic_launcher_round.xml
+          done
+
+      - name: Fix AndroidManifest - remove package attribute
+        working-directory: PropertyDealerApp
+        run: |
+          sed -i 's/package="com.propertydealer.app"//' \
+            app/src/main/AndroidManifest.xml
+
       - name: Install Gradle 8.0
         run: |
           wget -q https://services.gradle.org/distributions/gradle-8.0-bin.zip -O gradle.zip
           unzip -q gradle.zip -d /opt/gradle
-          echo "/opt/gradle/gradle-8.0/bin" >> $GITHUB_PATH
 
       - name: Generate Gradle Wrapper
         working-directory: PropertyDealerApp
