@@ -313,17 +313,17 @@ jobs:
                       if (property.totalSqYard > 0) append("${String.format("%.1f", property.totalSqYard)} sq.yd")
                   }
                   return buildString {
-                      appendLine("🏠 *${property.name}*")
-                      appendLine("📍 ${property.locality.ifEmpty { property.address }}")
-                      if (sizeInfo.isNotBlank()) appendLine("📐 $sizeInfo")
-                      if (property.frontRoadSize > 0) appendLine("🛣️ Front Road: ${property.frontRoadSize.toInt()} ft")
-                      if (property.facing.isNotEmpty()) appendLine("🧭 Facing: ${property.facing}")
-                      appendLine("🏗️ Type: ${property.propertyType}")
-                      if (property.totalPrice > 0) appendLine("💰 Price: ${FormatUtils.formatCurrencyShort(property.totalPrice)}")
-                      if (property.pricePerSqYard > 0) appendLine("💰 Rate: ${FormatUtils.formatCurrencyShort(property.pricePerSqYard)}/sq.yd")
-                      appendLine("📊 Status: ${property.status}")
-                      if (property.sellerPhone.isNotEmpty()) appendLine("📞 Contact: ${FormatUtils.maskPhoneNumber(property.sellerPhone)}")
-                      if (property.description.isNotEmpty()) appendLine("\n${property.description}")
+                      appendLine("Property: ${property.name}")
+                      appendLine("Location: ${property.locality.ifEmpty { property.address }}")
+                      if (sizeInfo.isNotBlank()) appendLine("Size: $sizeInfo")
+                      if (property.frontRoadSize > 0) appendLine("Front Road: ${property.frontRoadSize.toInt()} ft")
+                      if (property.facing.isNotEmpty()) appendLine("Facing: ${property.facing}")
+                      appendLine("Type: ${property.propertyType}")
+                      if (property.totalPrice > 0) appendLine("Price: ${FormatUtils.formatCurrencyShort(property.totalPrice)}")
+                      if (property.pricePerSqYard > 0) appendLine("Rate: ${FormatUtils.formatCurrencyShort(property.pricePerSqYard)}/sq.yd")
+                      appendLine("Status: ${property.status}")
+                      if (property.sellerPhone.isNotEmpty()) appendLine("Contact: ${FormatUtils.maskPhoneNumber(property.sellerPhone)}")
+                      if (property.description.isNotEmpty()) appendLine(property.description)
                   }
               }
               fun generateDealerShareText(property: Property, buyers: List<Buyer> = emptyList()): String {
@@ -333,28 +333,25 @@ jobs:
                       if (property.totalSqYard > 0) append("${String.format("%.1f", property.totalSqYard)} sq.yd")
                   }
                   return buildString {
-                      appendLine("🏠 *${property.name}* — DEALER REPORT")
-                      appendLine("📍 ${property.address}")
-                      if (sizeInfo.isNotBlank()) appendLine("📐 $sizeInfo")
-                      if (property.frontRoadSize > 0) appendLine("🛣️ Front Road: ${property.frontRoadSize.toInt()} ft")
-                      if (property.facing.isNotEmpty()) appendLine("🧭 Facing: ${property.facing}")
-                      appendLine("🏗️ Type: ${property.propertyType}")
-                      appendLine("💰 Total: ${FormatUtils.formatCurrencyShort(property.totalPrice)}")
-                      if (property.whitePrice > 0) appendLine("   White: ${FormatUtils.formatCurrencyShort(property.whitePrice)}")
-                      if (property.blackPrice > 0) appendLine("   Black: ${FormatUtils.formatCurrencyShort(property.blackPrice)}")
-                      if (property.pricePerSqYard > 0) appendLine("   Rate: ${FormatUtils.formatCurrencyShort(property.pricePerSqYard)}/sq.yd")
-                      appendLine("📊 Status: ${property.status}")
-                      appendLine("\n👤 SELLER")
-                      appendLine("Name: ${property.sellerName}")
+                      appendLine("DEALER REPORT: ${property.name}")
+                      appendLine("Address: ${property.address}")
+                      if (sizeInfo.isNotBlank()) appendLine("Size: $sizeInfo")
+                      if (property.frontRoadSize > 0) appendLine("Front Road: ${property.frontRoadSize.toInt()} ft")
+                      if (property.facing.isNotEmpty()) appendLine("Facing: ${property.facing}")
+                      appendLine("Type: ${property.propertyType}")
+                      appendLine("Total Price: ${FormatUtils.formatCurrencyShort(property.totalPrice)}")
+                      if (property.whitePrice > 0) appendLine("White: ${FormatUtils.formatCurrencyShort(property.whitePrice)}")
+                      if (property.blackPrice > 0) appendLine("Black: ${FormatUtils.formatCurrencyShort(property.blackPrice)}")
+                      if (property.pricePerSqYard > 0) appendLine("Rate: ${FormatUtils.formatCurrencyShort(property.pricePerSqYard)}/sq.yd")
+                      appendLine("Status: ${property.status}")
+                      appendLine("Seller: ${property.sellerName}")
                       appendLine("Phone: ${property.sellerPhone}")
                       if (property.sellerAltPhone.isNotEmpty()) appendLine("Alt: ${property.sellerAltPhone}")
                       if (buyers.isNotEmpty()) {
-                          appendLine("\n👥 BUYERS (${buyers.size})")
-                          buyers.forEach { b ->
-                              appendLine("• ${b.name} — ${FormatUtils.formatCurrencyShort(b.offeredPrice)} [${b.status}]")
-                          }
+                          appendLine("Buyers (${buyers.size}):")
+                          buyers.forEach { b -> appendLine("- ${b.name}: ${FormatUtils.formatCurrencyShort(b.offeredPrice)} [${b.status}]") }
                       }
-                      if (property.notes.isNotEmpty()) appendLine("\n📝 Notes: ${property.notes}")
+                      if (property.notes.isNotEmpty()) appendLine("Notes: ${property.notes}")
                   }
               }
           }
@@ -373,7 +370,6 @@ jobs:
           import com.propertydealer.app.data.model.Property
           import com.propertydealer.app.databinding.ActivityGuestPropertyDetailBinding
           import com.propertydealer.app.firebase.FirebaseRepository
-          import com.propertydealer.app.firebase.UserSession
           import com.propertydealer.app.utils.FormatUtils
           import com.google.firebase.firestore.ListenerRegistration
           import kotlinx.coroutines.launch
@@ -403,7 +399,7 @@ jobs:
                       val property = FirebaseRepository.getProperty(propertyId)
                       property?.let {
                           currentProperty = it
-                          renderProperty(it, currentSettings ?: GuestSettings())
+                          runOnUiThread { renderProperty(it, currentSettings ?: GuestSettings()) }
                       }
                   }
               }
@@ -420,21 +416,38 @@ jobs:
                           if (p.frontRoadSize > 0) append("\nFront Road: ${p.frontRoadSize.toInt()} ft")
                       }
                   } else binding.cardSize.visibility = View.GONE
-                  if (s.showFacing && p.facing.isNotEmpty()) { binding.textFacing.visibility = View.VISIBLE; binding.textFacing.text = "Facing: ${p.facing}" } else binding.textFacing.visibility = View.GONE
+                  if (s.showFacing && p.facing.isNotEmpty()) {
+                      binding.textFacing.visibility = View.VISIBLE
+                      binding.textFacing.text = "Facing: ${p.facing}"
+                  } else binding.textFacing.visibility = View.GONE
                   if (s.showPropertyType) binding.textType.text = p.propertyType
                   if (s.showPrice) {
                       binding.cardPrice.visibility = View.VISIBLE
                       binding.textPrice.text = FormatUtils.formatCurrencyShort(p.totalPrice)
-                      if (s.showPricePerSqYard && p.pricePerSqYard > 0) { binding.textPricePerSqYard.visibility = View.VISIBLE; binding.textPricePerSqYard.text = "${FormatUtils.formatCurrencyShort(p.pricePerSqYard)} / sq.yd" } else binding.textPricePerSqYard.visibility = View.GONE
+                      if (s.showPricePerSqYard && p.pricePerSqYard > 0) {
+                          binding.textPricePerSqYard.visibility = View.VISIBLE
+                          binding.textPricePerSqYard.text = "${FormatUtils.formatCurrencyShort(p.pricePerSqYard)} / sq.yd"
+                      } else binding.textPricePerSqYard.visibility = View.GONE
                   } else binding.cardPrice.visibility = View.GONE
-                  if (s.showSellerName && p.sellerName.isNotEmpty()) { binding.textSellerName.visibility = View.VISIBLE; binding.textSellerName.text = "Owner: ${p.sellerName}" } else binding.textSellerName.visibility = View.GONE
+                  if (s.showSellerName && p.sellerName.isNotEmpty()) {
+                      binding.textSellerName.visibility = View.VISIBLE
+                      binding.textSellerName.text = "Owner: ${p.sellerName}"
+                  } else binding.textSellerName.visibility = View.GONE
                   if (s.showPhone && p.sellerPhone.isNotEmpty()) {
                       binding.btnCallSeller.visibility = View.VISIBLE
-                      binding.btnCallSeller.text = "\uD83D\uDCDE ${FormatUtils.maskPhoneNumber(p.sellerPhone)}"
-                      binding.btnCallSeller.setOnClickListener { startActivity(Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:${p.sellerPhone}"))) }
+                      binding.btnCallSeller.text = "Call: ${FormatUtils.maskPhoneNumber(p.sellerPhone)}"
+                      binding.btnCallSeller.setOnClickListener {
+                          startActivity(Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:${p.sellerPhone}")))
+                      }
                   } else binding.btnCallSeller.visibility = View.GONE
-                  if (p.description.isNotEmpty()) { binding.textDescription.visibility = View.VISIBLE; binding.textDescription.text = p.description } else binding.textDescription.visibility = View.GONE
-                  if (p.extraFeatures.isNotEmpty()) { binding.textExtraFeatures.visibility = View.VISIBLE; binding.textExtraFeatures.text = "Features: ${p.extraFeatures}" } else binding.textExtraFeatures.visibility = View.GONE
+                  if (p.description.isNotEmpty()) {
+                      binding.textDescription.visibility = View.VISIBLE
+                      binding.textDescription.text = p.description
+                  } else binding.textDescription.visibility = View.GONE
+                  if (p.extraFeatures.isNotEmpty()) {
+                      binding.textExtraFeatures.visibility = View.VISIBLE
+                      binding.textExtraFeatures.text = "Features: ${p.extraFeatures}"
+                  } else binding.textExtraFeatures.visibility = View.GONE
                   binding.textStatus.text = p.status
                   binding.textStatus.setTextColor(FormatUtils.getStatusColor(p.status))
                   if (s.allowContactDealer) {
@@ -487,18 +500,15 @@ jobs:
                   binding.btnPickB.setOnClickListener { }
               }
               private fun renderCompare() {
-                  val a = propertyA
-                  val b = propertyB
                   binding.tableCompare.visibility = View.VISIBLE
-                  a?.let {
+                  propertyA?.let {
                       binding.textAName.text = it.name
                       binding.textAPrice.text = FormatUtils.formatCurrencyShort(it.totalPrice)
                       binding.textAAskingPrice.text = FormatUtils.formatCurrencyShort(it.sellerAskingPrice)
-                      val sizeA = buildString {
+                      binding.textAArea.text = buildString {
                           if (it.totalSqFeet > 0) append("${it.totalSqFeet.toInt()} sq.ft / ")
                           if (it.totalSqYard > 0) append("${String.format("%.1f", it.totalSqYard)} sq.yd")
-                      }
-                      binding.textAArea.text = sizeA.ifEmpty { "-" }
+                      }.ifEmpty { "-" }
                       binding.textAType.text = it.propertyType
                       binding.textAStatus.text = it.status
                       binding.textAFloor.text = it.floor.ifEmpty { "-" }
@@ -506,15 +516,14 @@ jobs:
                       binding.textAFurnished.text = it.furnished
                       binding.textAFacing.text = it.facing.ifEmpty { "-" }
                   }
-                  b?.let {
+                  propertyB?.let {
                       binding.textBName.text = it.name
                       binding.textBPrice.text = FormatUtils.formatCurrencyShort(it.totalPrice)
                       binding.textBAskingPrice.text = FormatUtils.formatCurrencyShort(it.sellerAskingPrice)
-                      val sizeB = buildString {
+                      binding.textBArea.text = buildString {
                           if (it.totalSqFeet > 0) append("${it.totalSqFeet.toInt()} sq.ft / ")
                           if (it.totalSqYard > 0) append("${String.format("%.1f", it.totalSqYard)} sq.yd")
-                      }
-                      binding.textBArea.text = sizeB.ifEmpty { "-" }
+                      }.ifEmpty { "-" }
                       binding.textBType.text = it.propertyType
                       binding.textBStatus.text = it.status
                       binding.textBFloor.text = it.floor.ifEmpty { "-" }
@@ -522,58 +531,443 @@ jobs:
                       binding.textBFurnished.text = it.furnished
                       binding.textBFacing.text = it.facing.ifEmpty { "-" }
                   }
+                  val a = propertyA
+                  val b = propertyB
                   if (a != null && b != null) {
                       binding.textPriceWinner.text = if (a.totalPrice <= b.totalPrice) "${a.name} is cheaper" else "${b.name} is cheaper"
                   }
               }
           }
           EOF
-      - name: Fix remaining Kotlin files with Python
+      - name: Rewrite AddEditPropertyActivity
+        working-directory: PropertyDealerApp
+        run: |
+          cat > app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt << 'EOF'
+          package com.propertydealer.app.ui.property
+          import android.Manifest
+          import android.content.pm.PackageManager
+          import android.os.Bundle
+          import android.text.Editable
+          import android.text.TextWatcher
+          import android.view.View
+          import android.widget.ArrayAdapter
+          import android.widget.Toast
+          import androidx.activity.result.contract.ActivityResultContracts
+          import androidx.activity.viewModels
+          import androidx.appcompat.app.AppCompatActivity
+          import androidx.core.content.ContextCompat
+          import com.google.android.gms.location.FusedLocationProviderClient
+          import com.google.android.gms.location.LocationServices
+          import com.propertydealer.app.data.model.Property
+          import com.propertydealer.app.databinding.ActivityAddEditPropertyBinding
+          import com.propertydealer.app.utils.FormatUtils
+          class AddEditPropertyActivity : AppCompatActivity() {
+              companion object { const val EXTRA_PROPERTY_ID = "extra_property_id" }
+              private lateinit var binding: ActivityAddEditPropertyBinding
+              private val viewModel: PropertyViewModel by viewModels { PropertyViewModelFactory(application) }
+              private lateinit var fusedLocationClient: FusedLocationProviderClient
+              private var editPropertyId: String = ""
+              private val locationPermissionRequest = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+                  if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true) getCurrentLocation()
+              }
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  binding = ActivityAddEditPropertyBinding.inflate(layoutInflater)
+                  setContentView(binding.root)
+                  fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+                  editPropertyId = intent.getStringExtra(EXTRA_PROPERTY_ID) ?: ""
+                  setSupportActionBar(binding.toolbar)
+                  supportActionBar?.setDisplayHomeAsUpEnabled(true)
+                  supportActionBar?.title = if (editPropertyId.isEmpty()) "Add Property" else "Edit Property"
+                  binding.toolbar.setNavigationOnClickListener { finish() }
+                  setupDropdowns()
+                  setupButtons()
+                  if (editPropertyId.isNotEmpty()) {
+                      viewModel.getPropertyById(editPropertyId) { property ->
+                          property?.let { runOnUiThread { populateForm(it) } }
+                      }
+                  }
+              }
+              private fun setupDropdowns() {
+                  val types = listOf("Residential", "Commercial", "Plot", "Agricultural", "Industrial")
+                  binding.autoCompletePropertyType.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, types))
+                  binding.autoCompletePropertyType.setText("Residential", false)
+                  val facing = listOf("North", "South", "East", "West", "North-East", "North-West", "South-East", "South-West")
+                  binding.autoCompleteFacing.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, facing))
+                  val furnished = listOf("Unfurnished", "Semi-Furnished", "Fully Furnished")
+                  binding.autoCompleteFurnished.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, furnished))
+                  binding.autoCompleteFurnished.setText("Unfurnished", false)
+                  val status = listOf("Available", "Sold", "Pending", "Under Negotiation")
+                  binding.autoCompleteStatus.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, status))
+                  binding.autoCompleteStatus.setText("Available", false)
+              }
+              private fun setupButtons() {
+                  binding.buttonGetLocation.setOnClickListener { checkAndGetLocation() }
+                  binding.buttonSave.setOnClickListener { saveProperty() }
+                  val sizeWatcher = object : TextWatcher {
+                      override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                      override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                      override fun afterTextChanged(s: Editable?) {
+                          val w = binding.editTextWidth.text.toString().toDoubleOrNull() ?: 0.0
+                          val d = binding.editTextDepth.text.toString().toDoubleOrNull() ?: 0.0
+                          if (w > 0 && d > 0) {
+                              val sqFt = w * d
+                              val sqYd = sqFt / 9.0
+                              binding.textAutoSqFeet.text = "= %.1f sq.ft".format(sqFt)
+                              binding.textAutoSqYard.text = "= %.2f sq.yd".format(sqYd)
+                              binding.textAutoSqFeet.visibility = View.VISIBLE
+                              binding.textAutoSqYard.visibility = View.VISIBLE
+                              val ppsq = binding.editTextPricePerSqYard.text.toString().toLongOrNull() ?: 0L
+                              if (ppsq > 0) {
+                                  val total = (sqYd * ppsq).toLong()
+                                  binding.textAutoTotalAmount.text = "Total = ${FormatUtils.formatCurrencyShort(total)}"
+                                  binding.textAutoTotalAmount.visibility = View.VISIBLE
+                              }
+                          } else {
+                              binding.textAutoSqFeet.visibility = View.GONE
+                              binding.textAutoSqYard.visibility = View.GONE
+                          }
+                      }
+                  }
+                  val priceWatcher = object : TextWatcher {
+                      override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                      override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                      override fun afterTextChanged(s: Editable?) {
+                          val w = binding.editTextWidth.text.toString().toDoubleOrNull() ?: 0.0
+                          val d = binding.editTextDepth.text.toString().toDoubleOrNull() ?: 0.0
+                          val ppsq = binding.editTextPricePerSqYard.text.toString().toLongOrNull() ?: 0L
+                          if (w > 0 && d > 0 && ppsq > 0) {
+                              val total = ((w * d / 9.0) * ppsq).toLong()
+                              binding.textAutoTotalAmount.text = "Total = ${FormatUtils.formatCurrencyShort(total)}"
+                              binding.textAutoTotalAmount.visibility = View.VISIBLE
+                          } else binding.textAutoTotalAmount.visibility = View.GONE
+                      }
+                  }
+                  binding.editTextWidth.addTextChangedListener(sizeWatcher)
+                  binding.editTextDepth.addTextChangedListener(sizeWatcher)
+                  binding.editTextPricePerSqYard.addTextChangedListener(priceWatcher)
+              }
+              private fun populateForm(property: Property) {
+                  binding.editTextName.setText(property.name)
+                  binding.editTextAddress.setText(property.address)
+                  binding.editTextLocality.setText(property.locality)
+                  binding.editTextLatitude.setText(if (property.latitude != 0.0) property.latitude.toString() else "")
+                  binding.editTextLongitude.setText(if (property.longitude != 0.0) property.longitude.toString() else "")
+                  if (property.width > 0) binding.editTextWidth.setText(property.width.toString())
+                  if (property.depth > 0) binding.editTextDepth.setText(property.depth.toString())
+                  if (property.frontRoadSize > 0) binding.editTextFrontRoad.setText(property.frontRoadSize.toString())
+                  if (property.pricePerSqYard > 0) binding.editTextPricePerSqYard.setText(property.pricePerSqYard.toString())
+                  if (property.sellerAskingPrice > 0) binding.editTextSellerAskingPrice.setText(property.sellerAskingPrice.toString())
+                  binding.editTextTotalPrice.setText(property.totalPrice.toString())
+                  binding.editTextWhitePrice.setText(property.whitePrice.toString())
+                  binding.editTextBlackPrice.setText(property.blackPrice.toString())
+                  binding.editTextSellerName.setText(property.sellerName)
+                  binding.editTextSellerPhone.setText(property.sellerPhone)
+                  binding.editTextSellerAltPhone.setText(property.sellerAltPhone)
+                  binding.editTextSellerEmail.setText(property.sellerEmail)
+                  binding.autoCompletePropertyType.setText(property.propertyType, false)
+                  binding.autoCompleteFacing.setText(property.facing, false)
+                  binding.autoCompleteFurnished.setText(property.furnished, false)
+                  binding.autoCompleteStatus.setText(property.status, false)
+                  binding.switchParking.isChecked = property.parking
+                  binding.editTextFloor.setText(property.floor)
+                  binding.editTextTotalFloors.setText(property.totalFloors)
+                  binding.editTextExtraFeatures.setText(property.extraFeatures)
+                  binding.editTextDescription.setText(property.description)
+                  binding.editTextNotes.setText(property.notes)
+              }
+              private fun checkAndGetLocation() {
+                  if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                      getCurrentLocation()
+                  } else {
+                      locationPermissionRequest.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                  }
+              }
+              private fun getCurrentLocation() {
+                  try {
+                      fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                          location?.let {
+                              binding.editTextLatitude.setText(it.latitude.toString())
+                              binding.editTextLongitude.setText(it.longitude.toString())
+                              Toast.makeText(this, "Location captured!", Toast.LENGTH_SHORT).show()
+                          } ?: Toast.makeText(this, "Could not get location", Toast.LENGTH_SHORT).show()
+                      }
+                  } catch (e: SecurityException) {
+                      Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
+                  }
+              }
+              private fun saveProperty() {
+                  val name = binding.editTextName.text.toString().trim()
+                  val address = binding.editTextAddress.text.toString().trim()
+                  val sellerName = binding.editTextSellerName.text.toString().trim()
+                  val sellerPhone = binding.editTextSellerPhone.text.toString().trim()
+                  if (name.isEmpty()) { Toast.makeText(this, "Property name required", Toast.LENGTH_SHORT).show(); return }
+                  if (address.isEmpty()) { Toast.makeText(this, "Address required", Toast.LENGTH_SHORT).show(); return }
+                  if (sellerName.isEmpty()) { Toast.makeText(this, "Seller name required", Toast.LENGTH_SHORT).show(); return }
+                  if (sellerPhone.isEmpty()) { Toast.makeText(this, "Seller phone required", Toast.LENGTH_SHORT).show(); return }
+                  val width = binding.editTextWidth.text.toString().toDoubleOrNull() ?: 0.0
+                  val depth = binding.editTextDepth.text.toString().toDoubleOrNull() ?: 0.0
+                  val totalSqFeet = if (width > 0 && depth > 0) width * depth else 0.0
+                  val totalSqYard = if (totalSqFeet > 0) totalSqFeet / 9.0 else 0.0
+                  val pricePerSqYard = binding.editTextPricePerSqYard.text.toString().toLongOrNull() ?: 0L
+                  val totalPrice = binding.editTextTotalPrice.text.toString().toLongOrNull() ?: 0L
+                  val finalTotalPrice = if (totalPrice == 0L && pricePerSqYard > 0 && totalSqYard > 0) (totalSqYard * pricePerSqYard).toLong() else totalPrice
+                  val commissionPct = binding.editTextCommissionPercent.text.toString().toDoubleOrNull() ?: 0.0
+                  val property = Property(
+                      id = editPropertyId,
+                      name = name, address = address,
+                      locality = binding.editTextLocality.text.toString().trim(),
+                      latitude = binding.editTextLatitude.text.toString().toDoubleOrNull() ?: 0.0,
+                      longitude = binding.editTextLongitude.text.toString().toDoubleOrNull() ?: 0.0,
+                      width = width, depth = depth,
+                      totalSqFeet = totalSqFeet, totalSqYard = totalSqYard,
+                      frontRoadSize = binding.editTextFrontRoad.text.toString().toDoubleOrNull() ?: 0.0,
+                      pricePerSqYard = pricePerSqYard, totalPrice = finalTotalPrice,
+                      whitePrice = binding.editTextWhitePrice.text.toString().toLongOrNull() ?: 0L,
+                      blackPrice = binding.editTextBlackPrice.text.toString().toLongOrNull() ?: 0L,
+                      sellerAskingPrice = binding.editTextSellerAskingPrice.text.toString().toLongOrNull() ?: 0L,
+                      commissionPercent = commissionPct,
+                      commissionAmount = (finalTotalPrice * commissionPct / 100).toLong(),
+                      sellerName = sellerName, sellerPhone = sellerPhone,
+                      sellerAltPhone = binding.editTextSellerAltPhone.text.toString().trim(),
+                      sellerEmail = binding.editTextSellerEmail.text.toString().trim(),
+                      propertyType = binding.autoCompletePropertyType.text.toString(),
+                      facing = binding.autoCompleteFacing.text.toString().trim(),
+                      floor = binding.editTextFloor.text.toString().trim(),
+                      totalFloors = binding.editTextTotalFloors.text.toString().trim(),
+                      parking = binding.switchParking.isChecked,
+                      furnished = binding.autoCompleteFurnished.text.toString(),
+                      status = binding.autoCompleteStatus.text.toString(),
+                      extraFeatures = binding.editTextExtraFeatures.text.toString().trim(),
+                      description = binding.editTextDescription.text.toString().trim(),
+                      notes = binding.editTextNotes.text.toString().trim(),
+                      updatedAt = System.currentTimeMillis()
+                  )
+                  if (editPropertyId.isEmpty()) {
+                      viewModel.insertProperty(property) { Toast.makeText(this, "Property added!", Toast.LENGTH_SHORT).show() }
+                  } else {
+                      viewModel.updateProperty(property)
+                      Toast.makeText(this, "Property updated!", Toast.LENGTH_SHORT).show()
+                  }
+                  finish()
+              }
+          }
+          EOF
+      - name: Rewrite MainActivity
+        working-directory: PropertyDealerApp
+        run: |
+          cat > app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt << 'EOF'
+          package com.propertydealer.app.ui.property
+          import android.content.Intent
+          import android.os.Bundle
+          import android.text.Editable
+          import android.text.TextWatcher
+          import android.view.Menu
+          import android.view.MenuItem
+          import android.view.View
+          import androidx.activity.viewModels
+          import androidx.appcompat.app.AlertDialog
+          import androidx.appcompat.app.AppCompatActivity
+          import androidx.recyclerview.widget.LinearLayoutManager
+          import com.propertydealer.app.R
+          import com.propertydealer.app.databinding.ActivityMainBinding
+          import com.propertydealer.app.firebase.UserSession
+          import com.propertydealer.app.ui.adapters.PropertyAdapter
+          import com.propertydealer.app.ui.auth.LoginActivity
+          class MainActivity : AppCompatActivity() {
+              private lateinit var binding: ActivityMainBinding
+              private val viewModel: PropertyViewModel by viewModels { PropertyViewModelFactory(application) }
+              private lateinit var adapter: PropertyAdapter
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  binding = ActivityMainBinding.inflate(layoutInflater)
+                  setContentView(binding.root)
+                  setSupportActionBar(binding.toolbar)
+                  supportActionBar?.title = "My Properties"
+                  setupAdapter()
+                  observeData()
+                  binding.fabAddProperty.setOnClickListener { startActivity(Intent(this, AddEditPropertyActivity::class.java)) }
+                  binding.editTextSearch.addTextChangedListener(object : TextWatcher {
+                      override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                      override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                      override fun afterTextChanged(s: Editable?) {
+                          val q = s.toString().trim()
+                          if (q.length >= 2) {
+                              viewModel.searchProperties(q).observe(this@MainActivity) { adapter.submitList(it) }
+                          } else {
+                              viewModel.allProperties.observe(this@MainActivity) { adapter.submitList(it) }
+                          }
+                      }
+                  })
+              }
+              private fun setupAdapter() {
+                  adapter = PropertyAdapter(
+                      onItemClick = { property ->
+                          startActivity(Intent(this, PropertyDetailActivity::class.java).apply { putExtra(PropertyDetailActivity.EXTRA_PROPERTY_ID, property.id) })
+                      },
+                      onEditClick = { property ->
+                          startActivity(Intent(this, AddEditPropertyActivity::class.java).apply { putExtra(AddEditPropertyActivity.EXTRA_PROPERTY_ID, property.id) })
+                      },
+                      onDeleteClick = { property ->
+                          AlertDialog.Builder(this).setTitle("Delete '${property.name}'?").setMessage("This cannot be undone.")
+                              .setPositiveButton("Delete") { _, _ -> viewModel.deleteProperty(property) }
+                              .setNegativeButton("Cancel", null).show()
+                      }
+                  )
+                  binding.recyclerProperties.apply { layoutManager = LinearLayoutManager(this@MainActivity); adapter = this@MainActivity.adapter }
+              }
+              private fun observeData() {
+                  viewModel.allProperties.observe(this) { properties ->
+                      adapter.submitList(properties)
+                      binding.textEmpty.visibility = if (properties.isEmpty()) View.VISIBLE else View.GONE
+                  }
+                  viewModel.totalCount.observe(this) { binding.textTotalCount.text = it.toString() }
+                  viewModel.availableCount.observe(this) { binding.textAvailableCount.text = it.toString() }
+                  viewModel.soldCount.observe(this) { binding.textSoldCount.text = it.toString() }
+                  viewModel.upcomingCount.observe(this) { binding.textUpcomingCount.text = it.toString() }
+              }
+              override fun onCreateOptionsMenu(menu: Menu): Boolean { menuInflater.inflate(R.menu.menu_main, menu); return true }
+              override fun onOptionsItemSelected(item: MenuItem): Boolean {
+                  return when (item.itemId) {
+                      R.id.action_search -> { startActivity(Intent(this, SearchActivity::class.java)); true }
+                      R.id.action_appointments_all -> { startActivity(Intent(this, com.propertydealer.app.ui.appointment.AppointmentActivity::class.java).apply { putExtra("mode", com.propertydealer.app.ui.appointment.AppointmentActivity.MODE_ALL) }); true }
+                      R.id.action_emi_calc -> { startActivity(Intent(this, com.propertydealer.app.ui.tools.EmiCalculatorActivity::class.java)); true }
+                      R.id.action_compare -> { startActivity(Intent(this, com.propertydealer.app.ui.tools.PropertyCompareActivity::class.java)); true }
+                      R.id.action_guest_settings -> { startActivity(Intent(this, com.propertydealer.app.ui.settings.DealerSettingsActivity::class.java)); true }
+                      R.id.action_logout -> {
+                          AlertDialog.Builder(this).setTitle("Logout?")
+                              .setPositiveButton("Logout") { _, _ -> UserSession.forceLogout(); startActivity(Intent(this, LoginActivity::class.java)); finishAffinity() }
+                              .setNegativeButton("Cancel", null).show(); true
+                      }
+                      else -> super.onOptionsItemSelected(item)
+                  }
+              }
+              override fun onResume() { super.onResume(); viewModel.refreshStats() }
+          }
+          EOF
+      - name: Rewrite PropertyDetailActivity
+        working-directory: PropertyDealerApp
+        run: |
+          cat > app/src/main/java/com/propertydealer/app/ui/property/PropertyDetailActivity.kt << 'EOF'
+          package com.propertydealer.app.ui.property
+          import android.content.Intent
+          import android.net.Uri
+          import android.os.Bundle
+          import android.view.Menu
+          import android.view.MenuItem
+          import androidx.activity.viewModels
+          import androidx.appcompat.app.AlertDialog
+          import androidx.appcompat.app.AppCompatActivity
+          import androidx.recyclerview.widget.LinearLayoutManager
+          import com.propertydealer.app.R
+          import com.propertydealer.app.data.model.Property
+          import com.propertydealer.app.databinding.ActivityPropertyDetailBinding
+          import com.propertydealer.app.ui.adapters.BuyerAdapter
+          import com.propertydealer.app.utils.FormatUtils
+          import com.propertydealer.app.utils.ShareUtils
+          class PropertyDetailActivity : AppCompatActivity() {
+              companion object { const val EXTRA_PROPERTY_ID = "extra_property_id" }
+              private lateinit var binding: ActivityPropertyDetailBinding
+              private val viewModel: PropertyViewModel by viewModels { PropertyViewModelFactory(application) }
+              private var currentProperty: Property? = null
+              private var propertyId = ""
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  binding = ActivityPropertyDetailBinding.inflate(layoutInflater)
+                  setContentView(binding.root)
+                  propertyId = intent.getStringExtra(EXTRA_PROPERTY_ID) ?: ""
+                  setSupportActionBar(binding.toolbar)
+                  supportActionBar?.setDisplayHomeAsUpEnabled(true)
+                  binding.toolbar.setNavigationOnClickListener { finish() }
+                  viewModel.getPropertyById(propertyId) { property ->
+                      property?.let { runOnUiThread { displayProperty(it) } }
+                  }
+                  setupBuyerList()
+              }
+              private fun displayProperty(property: Property) {
+                  currentProperty = property
+                  supportActionBar?.title = property.name
+                  supportActionBar?.subtitle = property.propertyType
+                  binding.textDetailAddress.text = property.address
+                  binding.textDetailSize.text = buildString {
+                      if (property.width > 0 && property.depth > 0) append("${property.width.toInt()} x ${property.depth.toInt()} ft\n")
+                      if (property.totalSqFeet > 0) append("${property.totalSqFeet.toInt()} sq.ft")
+                      if (property.totalSqYard > 0) append("  |  ${String.format("%.2f", property.totalSqYard)} sq.yd")
+                      if (property.frontRoadSize > 0) append("\nFront Road: ${property.frontRoadSize.toInt()} ft")
+                  }.ifEmpty { "Not specified" }
+                  binding.textDetailPrice.text = FormatUtils.formatCurrencyShort(property.totalPrice)
+                  if (property.pricePerSqYard > 0) binding.textDetailPricePerSqYard.text = "${FormatUtils.formatCurrencyShort(property.pricePerSqYard)}/sq.yd"
+                  if (property.whitePrice > 0) binding.textDetailWhitePrice.text = "White: ${FormatUtils.formatCurrencyShort(property.whitePrice)}"
+                  if (property.blackPrice > 0) binding.textDetailBlackPrice.text = "Black: ${FormatUtils.formatCurrencyShort(property.blackPrice)}"
+                  binding.textDetailSellerName.text = property.sellerName
+                  binding.textDetailSellerPhone.text = property.sellerPhone
+                  binding.textDetailStatus.text = property.status
+                  binding.textDetailFacing.text = property.facing.ifEmpty { "-" }
+                  binding.textDetailType.text = property.propertyType
+                  binding.textDetailDescription.text = property.description.ifEmpty { "-" }
+                  binding.textDetailNotes.text = property.notes.ifEmpty { "-" }
+                  binding.btnCallSeller.setOnClickListener { startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${property.sellerPhone}"))) }
+                  binding.btnViewOnMap.setOnClickListener {
+                      if (property.latitude != 0.0 && property.longitude != 0.0) {
+                          startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${property.latitude},${property.longitude}?q=${property.latitude},${property.longitude}")))
+                      } else {
+                          startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(property.address)}")))
+                      }
+                  }
+              }
+              private fun setupBuyerList() {
+                  val buyerAdapter = BuyerAdapter(
+                      onEditClick = { buyer -> startActivity(Intent(this, com.propertydealer.app.ui.buyer.AddBuyerActivity::class.java).apply { putExtra(com.propertydealer.app.ui.buyer.AddBuyerActivity.EXTRA_PROPERTY_ID, propertyId); putExtra(com.propertydealer.app.ui.buyer.AddBuyerActivity.EXTRA_BUYER_ID, buyer.id) }) },
+                      onDeleteClick = { buyer -> AlertDialog.Builder(this).setTitle("Remove buyer?").setPositiveButton("Remove") { _, _ -> viewModel.deleteBuyer(buyer) }.setNegativeButton("Cancel", null).show() },
+                      onCallClick = { buyer -> startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${buyer.phone}"))) }
+                  )
+                  binding.recyclerBuyers.apply { layoutManager = LinearLayoutManager(this@PropertyDetailActivity); adapter = buyerAdapter }
+                  viewModel.getBuyersForProperty(propertyId).observe(this) { buyerAdapter.submitList(it) }
+                  binding.btnAddBuyer.setOnClickListener { startActivity(Intent(this, com.propertydealer.app.ui.buyer.AddBuyerActivity::class.java).apply { putExtra(com.propertydealer.app.ui.buyer.AddBuyerActivity.EXTRA_PROPERTY_ID, propertyId) }) }
+              }
+              override fun onCreateOptionsMenu(menu: Menu): Boolean { menuInflater.inflate(R.menu.menu_property_detail, menu); return true }
+              override fun onOptionsItemSelected(item: MenuItem): Boolean {
+                  val p = currentProperty ?: return super.onOptionsItemSelected(item)
+                  return when (item.itemId) {
+                      R.id.action_edit -> { startActivity(Intent(this, AddEditPropertyActivity::class.java).apply { putExtra(AddEditPropertyActivity.EXTRA_PROPERTY_ID, p.id) }); true }
+                      R.id.action_delete -> { AlertDialog.Builder(this).setTitle("Delete '${p.name}'?").setPositiveButton("Delete") { _, _ -> viewModel.deleteProperty(p); finish() }.setNegativeButton("Cancel", null).show(); true }
+                      R.id.action_share_buyer -> { startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, ShareUtils.generateBuyerShareText(p)) }, "Share via")); true }
+                      R.id.action_full_report -> { startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, ShareUtils.generateDealerShareText(p)) }, "Share via")); true }
+                      R.id.action_distance -> { startActivity(Intent(this, DistanceCalculatorActivity::class.java).apply { putExtra(DistanceCalculatorActivity.EXTRA_PROPERTY_LAT, p.latitude); putExtra(DistanceCalculatorActivity.EXTRA_PROPERTY_LON, p.longitude); putExtra(DistanceCalculatorActivity.EXTRA_PROPERTY_NAME, p.name); putExtra(DistanceCalculatorActivity.EXTRA_PROPERTY_ADDRESS, p.address) }); true }
+                      R.id.action_documents -> { startActivity(Intent(this, com.propertydealer.app.ui.document.DocumentManagerActivity::class.java).apply { putExtra(com.propertydealer.app.ui.document.DocumentManagerActivity.EXTRA_PROPERTY_ID, p.id); putExtra(com.propertydealer.app.ui.document.DocumentManagerActivity.EXTRA_PROPERTY_NAME, p.name) }); true }
+                      R.id.action_appointments -> { startActivity(Intent(this, com.propertydealer.app.ui.appointment.AppointmentActivity::class.java).apply { putExtra(com.propertydealer.app.ui.appointment.AppointmentActivity.EXTRA_PROPERTY_ID, p.id); putExtra(com.propertydealer.app.ui.appointment.AppointmentActivity.EXTRA_PROPERTY_NAME, p.name) }); true }
+                      R.id.action_negotiation -> { startActivity(Intent(this, com.propertydealer.app.ui.negotiation.NegotiationActivity::class.java).apply { putExtra(com.propertydealer.app.ui.negotiation.NegotiationActivity.EXTRA_PROPERTY_ID, p.id); putExtra(com.propertydealer.app.ui.negotiation.NegotiationActivity.EXTRA_PROPERTY_NAME, p.name) }); true }
+                      R.id.action_compare -> { startActivity(Intent(this, com.propertydealer.app.ui.tools.PropertyCompareActivity::class.java).apply { putExtra(com.propertydealer.app.ui.tools.PropertyCompareActivity.EXTRA_PROPERTY_A_ID, p.id) }); true }
+                      else -> super.onOptionsItemSelected(item)
+                  }
+              }
+          }
+          EOF
+      - name: Fix remaining files with Python
         working-directory: PropertyDealerApp
         run: |
           python3 << 'PYEOF'
-          import re, os
+          import os
 
-          def fix(path, replacements):
-              if not os.path.exists(path): print(f"SKIP {path}"); return
-              with open(path, 'r') as f: content = f.read()
-              for old, new in replacements:
-                  content = content.replace(old, new)
-              with open(path, 'w') as f: f.write(content)
-              print(f"Fixed: {path}")
-
-          # Fix PropertyDetailActivity
-          fix("app/src/main/java/com/propertydealer/app/ui/property/PropertyDetailActivity.kt", [
-              ("action_share_dealer", "action_full_report"),
-              (".area ", ".totalSqYard.toString() "),
-              (".areaUnit", "\"sq.yd\""),
-              ("property.area\n", "property.totalSqYard.toString()\n"),
-          ])
-
-          # Fix AddEditPropertyActivity - remove broken lines
-          path = "app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt"
-          if os.path.exists(path):
+          def fix_file(path, bad_keywords):
+              if not os.path.exists(path): return
               with open(path) as f: lines = f.readlines()
-              bad_keywords = ["autoCompleteAreaUnit", "editTextArea", "getFilteredProperties",
-                              "AppDatabase", "editTextPropertyName", "tilPropertyName",
-                              "tilAddress", "tilSellerName", "tilSellerPhone",
-                              "setSearchQuery", "setStatusFilter", "setTypeFilter",
-                              "operationStatus"]
               clean = [l for l in lines if not any(k in l for k in bad_keywords)]
               with open(path, 'w') as f: f.writelines(clean)
               print(f"Fixed: {path}")
 
-          # Fix MainActivity - remove broken lines
-          path = "app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt"
-          if os.path.exists(path):
-              with open(path) as f: lines = f.readlines()
-              bad = ["setSearchQuery", "setStatusFilter", "setTypeFilter",
-                     "operationStatus", "getFilteredProperties"]
-              clean = [l for l in lines if not any(k in l for k in bad)]
-              with open(path, 'w') as f: f.writelines(clean)
-              print(f"Fixed: {path}")
+          fix_file("app/src/main/java/com/propertydealer/app/ui/buyer/AddBuyerActivity.kt",
+              ["AppDatabase", "import com.propertydealer.app.data.db"])
 
-          # Fix AddBuyerActivity, NegotiationActivity, AppointmentActivity, DocumentManagerActivity
+          fix_file("app/src/main/java/com/propertydealer/app/ui/negotiation/NegotiationActivity.kt",
+              ["AppDatabase", "import com.propertydealer.app.data.db", "getFilteredProperties"])
+
+          fix_file("app/src/main/java/com/propertydealer/app/ui/appointment/AppointmentActivity.kt",
+              ["AppDatabase", "import com.propertydealer.app.data.db"])
+
+          fix_file("app/src/main/java/com/propertydealer/app/ui/document/DocumentManagerActivity.kt",
+              ["AppDatabase", "import com.propertydealer.app.data.db"])
+
           for path in [
               "app/src/main/java/com/propertydealer/app/ui/buyer/AddBuyerActivity.kt",
               "app/src/main/java/com/propertydealer/app/ui/negotiation/NegotiationActivity.kt",
@@ -581,19 +975,12 @@ jobs:
               "app/src/main/java/com/propertydealer/app/ui/document/DocumentManagerActivity.kt",
           ]:
               if not os.path.exists(path): continue
-              with open(path) as f: lines = f.readlines()
-              bad = ["AppDatabase", "import com.propertydealer.app.data.db"]
-              clean = []
-              for l in lines:
-                  if any(k in l for k in bad): continue
-                  l = l.replace("getLongExtra(EXTRA_PROPERTY_ID, -1L)", 'getStringExtra(EXTRA_PROPERTY_ID) ?: ""')
-                  l = l.replace("getLongExtra(EXTRA_BUYER_ID, -1L)", 'getStringExtra(EXTRA_BUYER_ID) ?: ""')
-                  l = l.replace(", -1L)", ', "") ?: "")')
-                  clean.append(l)
-              with open(path, 'w') as f: f.writelines(clean)
-              print(f"Fixed: {path}")
+              with open(path) as f: content = f.read()
+              content = content.replace("getLongExtra(EXTRA_PROPERTY_ID, -1L)", 'getStringExtra(EXTRA_PROPERTY_ID) ?: ""')
+              content = content.replace("getLongExtra(EXTRA_BUYER_ID, -1L)", 'getStringExtra(EXTRA_BUYER_ID) ?: ""')
+              with open(path, 'w') as f: f.write(content)
 
-          print("All Python fixes done!")
+          print("All done!")
           PYEOF
       - name: Install Gradle 8.7
         run: |
