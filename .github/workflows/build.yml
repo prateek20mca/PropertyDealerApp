@@ -982,6 +982,302 @@ jobs:
 
           print("All done!")
           PYEOF
+      - name: Fix item_property layout
+        working-directory: PropertyDealerApp
+        run: |
+          cat > app/src/main/res/layout/item_property.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent" android:layout_height="wrap_content"
+              android:layout_margin="6dp" app:cardCornerRadius="8dp" app:cardElevation="3dp">
+              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:orientation="vertical" android:padding="12dp">
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:orientation="horizontal" android:gravity="center_vertical">
+                      <TextView android:id="@+id/textPropertyName"
+                          android:layout_width="0dp" android:layout_height="wrap_content"
+                          android:layout_weight="1" android:textSize="15sp" android:textStyle="bold"
+                          android:textColor="#212121" android:maxLines="1" android:ellipsize="end"/>
+                      <TextView android:id="@+id/textPropertyStatus"
+                          android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:textSize="11sp" android:textStyle="bold" android:textColor="#1A237E"/>
+                  </LinearLayout>
+                  <TextView android:id="@+id/textPropertyAddress"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:textSize="12sp" android:textColor="#757575" android:layout_marginTop="4dp"
+                      android:maxLines="1" android:ellipsize="end"/>
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="6dp">
+                      <TextView android:id="@+id/textPropertyType"
+                          android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:textSize="12sp" android:textColor="#FF6F00" android:textStyle="bold"
+                          android:paddingEnd="8dp"/>
+                      <TextView android:id="@+id/textPropertyArea"
+                          android:layout_width="0dp" android:layout_height="wrap_content"
+                          android:layout_weight="1" android:textSize="12sp" android:textColor="#212121"/>
+                      <TextView android:id="@+id/textPropertyPrice"
+                          android:layout_width="wrap_content" android:layout_height="wrap_content"
+                          android:textSize="14sp" android:textStyle="bold" android:textColor="#1A237E"/>
+                  </LinearLayout>
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="6dp">
+                      <TextView android:id="@+id/textPropertyDate"
+                          android:layout_width="0dp" android:layout_height="wrap_content"
+                          android:layout_weight="1" android:textSize="11sp" android:textColor="#757575"/>
+                      <ImageButton android:id="@+id/btnEdit"
+                          android:layout_width="32dp" android:layout_height="32dp"
+                          android:src="@drawable/ic_edit"
+                          android:background="?attr/selectableItemBackgroundBorderless"
+                          android:contentDescription="Edit"/>
+                      <ImageButton android:id="@+id/btnDelete"
+                          android:layout_width="32dp" android:layout_height="32dp"
+                          android:src="@drawable/ic_delete"
+                          android:background="?attr/selectableItemBackgroundBorderless"
+                          android:contentDescription="Delete"/>
+                  </LinearLayout>
+              </LinearLayout>
+          </androidx.cardview.widget.CardView>
+          EOF
+      - name: Fix activity_main layout
+        working-directory: PropertyDealerApp
+        run: |
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <androidx.coordinatorlayout.widget.CoordinatorLayout
+              xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent" android:layout_height="match_parent"
+              android:background="#F5F5F5">
+              <com.google.android.material.appbar.AppBarLayout
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <androidx.appcompat.widget.Toolbar android:id="@+id/toolbar"
+                      android:layout_width="match_parent" android:layout_height="?attr/actionBarSize"
+                      android:background="@color/colorPrimary" app:titleTextColor="#FFFFFF"/>
+              </com.google.android.material.appbar.AppBarLayout>
+              <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+                  android:orientation="vertical"
+                  app:layout_behavior="@string/appbar_scrolling_view_behavior">
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:orientation="horizontal" android:padding="8dp"
+                      android:background="@color/colorPrimary">
+                      <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                          android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                          <TextView android:id="@+id/textTotalCount"
+                              android:layout_width="wrap_content" android:layout_height="wrap_content"
+                              android:text="0" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
+                          <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                              android:text="Total" android:textSize="10sp" android:textColor="#CCFFFFFF"/>
+                      </LinearLayout>
+                      <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                          android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                          <TextView android:id="@+id/textAvailableCount"
+                              android:layout_width="wrap_content" android:layout_height="wrap_content"
+                              android:text="0" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
+                          <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                              android:text="Available" android:textSize="10sp" android:textColor="#CCFFFFFF"/>
+                      </LinearLayout>
+                      <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                          android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                          <TextView android:id="@+id/textSoldCount"
+                              android:layout_width="wrap_content" android:layout_height="wrap_content"
+                              android:text="0" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
+                          <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                              android:text="Sold" android:textSize="10sp" android:textColor="#CCFFFFFF"/>
+                      </LinearLayout>
+                      <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                          android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                          <TextView android:id="@+id/textUpcomingCount"
+                              android:layout_width="wrap_content" android:layout_height="wrap_content"
+                              android:text="0" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
+                          <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                              android:text="Visits" android:textSize="10sp" android:textColor="#CCFFFFFF"/>
+                      </LinearLayout>
+                  </LinearLayout>
+                  <com.google.android.material.textfield.TextInputLayout
+                      style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:layout_margin="8dp" android:hint="Search properties...">
+                      <com.google.android.material.textfield.TextInputEditText
+                          android:id="@+id/editTextSearch"
+                          android:layout_width="match_parent" android:layout_height="wrap_content"
+                          android:inputType="text" android:maxLines="1"/>
+                  </com.google.android.material.textfield.TextInputLayout>
+                  <TextView android:id="@+id/textEmpty"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:text="No properties yet. Tap + to add."
+                      android:textColor="#757575" android:gravity="center"
+                      android:padding="48dp" android:visibility="gone"/>
+                  <androidx.recyclerview.widget.RecyclerView android:id="@+id/recyclerProperties"
+                      android:layout_width="match_parent" android:layout_height="0dp"
+                      android:layout_weight="1" android:padding="4dp" android:clipToPadding="false"/>
+              </LinearLayout>
+              <com.google.android.material.floatingactionbutton.FloatingActionButton
+                  android:id="@+id/fabAddProperty"
+                  android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:layout_gravity="bottom|end" android:layout_margin="16dp"
+                  android:src="@drawable/ic_add"
+                  app:backgroundTint="@color/colorAccent" app:tint="#FFFFFF"/>
+          </androidx.coordinatorlayout.widget.CoordinatorLayout>
+          EOF
+      - name: Fix activity_property_detail layout
+        working-directory: PropertyDealerApp
+        run: |
+          cat > app/src/main/res/layout/activity_property_detail.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <androidx.coordinatorlayout.widget.CoordinatorLayout
+              xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent" android:layout_height="match_parent"
+              android:background="#F5F5F5">
+              <com.google.android.material.appbar.AppBarLayout
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <androidx.appcompat.widget.Toolbar android:id="@+id/toolbar"
+                      android:layout_width="match_parent" android:layout_height="?attr/actionBarSize"
+                      android:background="@color/colorPrimary"
+                      app:titleTextColor="#FFFFFF" app:subtitleTextColor="#FFFFFF"/>
+              </com.google.android.material.appbar.AppBarLayout>
+              <ScrollView android:layout_width="match_parent" android:layout_height="match_parent"
+                  app:layout_behavior="@string/appbar_scrolling_view_behavior">
+                  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                      android:orientation="vertical" android:padding="12dp">
+                      <androidx.cardview.widget.CardView
+                          app:cardCornerRadius="8dp" app:cardElevation="2dp"
+                          android:layout_width="match_parent" android:layout_height="wrap_content"
+                          android:layout_marginBottom="8dp">
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                              android:orientation="vertical" android:padding="16dp">
+                              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                                  android:orientation="horizontal">
+                                  <TextView android:id="@+id/textDetailType"
+                                      android:layout_width="0dp" android:layout_height="wrap_content"
+                                      android:layout_weight="1" android:textSize="13sp"
+                                      android:textColor="#FF6F00" android:textStyle="bold"/>
+                                  <TextView android:id="@+id/textDetailStatus"
+                                      android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                      android:textSize="13sp" android:textStyle="bold" android:textColor="#1A237E"/>
+                              </LinearLayout>
+                              <TextView android:id="@+id/textDetailAddress"
+                                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                                  android:textSize="14sp" android:textColor="#212121" android:layout_marginTop="6dp"/>
+                              <TextView android:id="@+id/textDetailFacing"
+                                  android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:textSize="12sp" android:textColor="#757575" android:layout_marginTop="4dp"/>
+                          </LinearLayout>
+                      </androidx.cardview.widget.CardView>
+                      <androidx.cardview.widget.CardView
+                          app:cardCornerRadius="8dp" app:cardElevation="2dp"
+                          android:layout_width="match_parent" android:layout_height="wrap_content"
+                          android:layout_marginBottom="8dp">
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                              android:orientation="vertical" android:padding="16dp">
+                              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:text="Size" android:textStyle="bold"
+                                  android:textColor="#1A237E" android:textSize="13sp"/>
+                              <TextView android:id="@+id/textDetailSize"
+                                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                                  android:textSize="16sp" android:textStyle="bold"
+                                  android:textColor="#212121" android:layout_marginTop="4dp"/>
+                          </LinearLayout>
+                      </androidx.cardview.widget.CardView>
+                      <androidx.cardview.widget.CardView
+                          app:cardCornerRadius="8dp" app:cardElevation="2dp"
+                          android:layout_width="match_parent" android:layout_height="wrap_content"
+                          android:layout_marginBottom="8dp">
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                              android:orientation="vertical" android:padding="16dp"
+                              android:background="@color/colorPrimary">
+                              <TextView android:id="@+id/textDetailPrice"
+                                  android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:textSize="24sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
+                              <TextView android:id="@+id/textDetailPricePerSqYard"
+                                  android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:textSize="13sp" android:textColor="#CCFFFFFF"/>
+                              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                                  android:orientation="horizontal" android:layout_marginTop="4dp">
+                                  <TextView android:id="@+id/textDetailWhitePrice"
+                                      android:layout_width="0dp" android:layout_height="wrap_content"
+                                      android:layout_weight="1" android:textSize="12sp" android:textColor="#CCFFFFFF"/>
+                                  <TextView android:id="@+id/textDetailBlackPrice"
+                                      android:layout_width="0dp" android:layout_height="wrap_content"
+                                      android:layout_weight="1" android:textSize="12sp" android:textColor="#CCFFFFFF"/>
+                              </LinearLayout>
+                          </LinearLayout>
+                      </androidx.cardview.widget.CardView>
+                      <androidx.cardview.widget.CardView
+                          app:cardCornerRadius="8dp" app:cardElevation="2dp"
+                          android:layout_width="match_parent" android:layout_height="wrap_content"
+                          android:layout_marginBottom="8dp">
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                              android:orientation="vertical" android:padding="16dp">
+                              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:text="Seller" android:textStyle="bold"
+                                  android:textColor="#1A237E" android:textSize="13sp"/>
+                              <TextView android:id="@+id/textDetailSellerName"
+                                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                                  android:textSize="14sp" android:textStyle="bold"
+                                  android:textColor="#212121" android:layout_marginTop="4dp"/>
+                              <TextView android:id="@+id/textDetailSellerPhone"
+                                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                                  android:textSize="13sp" android:textColor="#757575" android:layout_marginTop="2dp"/>
+                              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                                  android:orientation="horizontal" android:layout_marginTop="12dp">
+                                  <Button android:id="@+id/btnCallSeller"
+                                      android:layout_width="0dp" android:layout_height="wrap_content"
+                                      android:layout_weight="1" android:text="Call Seller"
+                                      android:layout_marginEnd="8dp" app:backgroundTint="@color/colorPrimary"/>
+                                  <Button android:id="@+id/btnViewOnMap"
+                                      android:layout_width="0dp" android:layout_height="wrap_content"
+                                      android:layout_weight="1" android:text="View Map"
+                                      style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                              </LinearLayout>
+                          </LinearLayout>
+                      </androidx.cardview.widget.CardView>
+                      <androidx.cardview.widget.CardView
+                          app:cardCornerRadius="8dp" app:cardElevation="2dp"
+                          android:layout_width="match_parent" android:layout_height="wrap_content"
+                          android:layout_marginBottom="8dp">
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                              android:orientation="vertical" android:padding="16dp">
+                              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:text="Description" android:textStyle="bold"
+                                  android:textColor="#1A237E" android:textSize="13sp"/>
+                              <TextView android:id="@+id/textDetailDescription"
+                                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                                  android:textSize="13sp" android:textColor="#757575" android:layout_marginTop="4dp"/>
+                              <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                  android:text="Notes" android:textStyle="bold"
+                                  android:textColor="#1A237E" android:textSize="13sp" android:layout_marginTop="12dp"/>
+                              <TextView android:id="@+id/textDetailNotes"
+                                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                                  android:textSize="13sp" android:textColor="#757575" android:layout_marginTop="4dp"/>
+                          </LinearLayout>
+                      </androidx.cardview.widget.CardView>
+                      <androidx.cardview.widget.CardView
+                          app:cardCornerRadius="8dp" app:cardElevation="2dp"
+                          android:layout_width="match_parent" android:layout_height="wrap_content"
+                          android:layout_marginBottom="8dp">
+                          <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                              android:orientation="vertical" android:padding="16dp">
+                              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                                  android:orientation="horizontal" android:gravity="center_vertical">
+                                  <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                      android:layout_weight="1" android:text="Buyers"
+                                      android:textStyle="bold" android:textColor="#1A237E" android:textSize="13sp"/>
+                                  <Button android:id="@+id/btnAddBuyer"
+                                      android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                      android:text="+ Add" app:backgroundTint="@color/colorAccent"
+                                      android:textSize="12sp"/>
+                              </LinearLayout>
+                              <androidx.recyclerview.widget.RecyclerView android:id="@+id/recyclerBuyers"
+                                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                                  android:nestedScrollingEnabled="false" android:layout_marginTop="8dp"/>
+                          </LinearLayout>
+                      </androidx.cardview.widget.CardView>
+                  </LinearLayout>
+              </ScrollView>
+          </androidx.coordinatorlayout.widget.CoordinatorLayout>
+          EOF
       - name: Install Gradle 8.7
         run: |
           wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip -O g.zip
