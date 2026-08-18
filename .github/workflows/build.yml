@@ -12,8 +12,15 @@ jobs:
       - uses: android-actions/setup-android@v3
       - run: yes | sdkmanager --licenses || true
       - run: sdkmanager "build-tools;33.0.1" "platforms;android-33" || true
-      - name: Extract ZIP
-        run: unzip PropertyDealerApp_v3.zip
+      - name: Find and Extract ZIP
+        run: |
+          echo "Files in root:"
+          ls -la
+          echo "Finding zip file:"
+          find . -name "*.zip" -not -path "./.git/*"
+          ZIP=$(find . -name "PropertyDealerApp_v3.zip" -not -path "./.git/*" | head -1)
+          echo "Found: $ZIP"
+          unzip "$ZIP"
       - name: Set SDK path
         run: echo "sdk.dir=$ANDROID_SDK_ROOT" > PropertyDealerApp/local.properties
       - name: Dummy google-services.json
