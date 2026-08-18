@@ -11,13 +11,9 @@ jobs:
           distribution: 'temurin'
       - uses: android-actions/setup-android@v3
       - run: yes | sdkmanager --licenses || true
-      - run: sdkmanager "build-tools;33.0.1" "platforms;android-33" || true
+      - run: sdkmanager "build-tools;34.0.0" "platforms;android-34" || true
       - name: Find and Extract ZIP
         run: |
-          echo "Files in root:"
-          ls -la
-          echo "Finding zip file:"
-          find . -name "*.zip" -not -path "./.git/*"
           ZIP=$(find . -name "PropertyDealerApp_v3.zip" -not -path "./.git/*" | head -1)
           echo "Found: $ZIP"
           unzip "$ZIP"
@@ -35,7 +31,7 @@ jobs:
               ext.kotlin_version = '1.9.0'
               repositories { google(); mavenCentral() }
               dependencies {
-                  classpath 'com.android.tools.build:gradle:8.1.0'
+                  classpath 'com.android.tools.build:gradle:8.4.0'
                   classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
                   classpath 'com.google.gms:google-services:4.4.0'
               }
@@ -54,6 +50,59 @@ jobs:
           }
           rootProject.name = "PropertyDealerApp"
           include ':app'
+          EOF
+      - name: Fix app/build.gradle - compileSdk 34
+        working-directory: PropertyDealerApp
+        run: |
+          cat > app/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application'
+              id 'org.jetbrains.kotlin.android'
+              id 'kotlin-kapt'
+              id 'kotlin-parcelize'
+              id 'com.google.gms.google-services'
+          }
+          android {
+              namespace 'com.propertydealer.app'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.propertydealer.app"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 3
+                  versionName "3.0"
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = '17' }
+              buildFeatures { viewBinding true; dataBinding true }
+          }
+          dependencies {
+              implementation 'com.google.android.material:material:1.11.0'
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+              implementation 'androidx.cardview:cardview:1.0.0'
+              implementation 'androidx.recyclerview:recyclerview:1.3.2'
+              implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
+              implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
+              implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+              implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+              implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3'
+              implementation platform('com.google.firebase:firebase-bom:32.7.0')
+              implementation 'com.google.firebase:firebase-firestore-ktx'
+              implementation 'com.google.firebase:firebase-messaging-ktx'
+              implementation 'com.google.android.gms:play-services-location:21.0.1'
+              implementation 'com.github.bumptech.glide:glide:4.16.0'
+              testImplementation 'junit:junit:4.13.2'
+          }
           EOF
       - name: Fix colors
         working-directory: PropertyDealerApp
@@ -91,14 +140,14 @@ jobs:
       - name: Remove old Room files
         working-directory: PropertyDealerApp
         run: rm -f app/src/main/java/com/propertydealer/app/data/db/*.kt
-      - name: Install Gradle
+      - name: Install Gradle 8.4
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.0-bin.zip -O g.zip
+          wget -q https://services.gradle.org/distributions/gradle-8.4-bin.zip -O g.zip
           unzip -q g.zip -d /opt/gradle
       - name: Generate wrapper
         working-directory: PropertyDealerApp
         run: |
-          /opt/gradle/gradle-8.0/bin/gradle wrapper --gradle-version 8.0
+          /opt/gradle/gradle-8.4/bin/gradle wrapper --gradle-version 8.4
           chmod +x gradlew
       - name: Build APK
         working-directory: PropertyDealerApp
