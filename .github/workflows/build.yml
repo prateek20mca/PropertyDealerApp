@@ -1,76 +1,54 @@
 name: Build APK
 on: [push, workflow_dispatch]
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept SDK licenses
-        run: yes | sdkmanager --licenses || true
-
-      - name: Install build tools
-        run: sdkmanager "build-tools;34.0.0" "platforms;android-34" || true
-
+      - uses: android-actions/setup-android@v3
+      - run: yes | sdkmanager --licenses || true
+      - run: sdkmanager "build-tools;33.0.1" "platforms;android-33" || true
       - name: Extract ZIP
-        run: unzip PropertyDealerApp_v2.zip
-
-      - name: Set Android SDK path
+        run: unzip PropertyDealerApp_v3.zip
+      - name: Set SDK path
+        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > PropertyDealerApp/local.properties
+      - name: Dummy google-services.json
+        working-directory: PropertyDealerApp/app
         run: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > PropertyDealerApp/local.properties
-
+          echo '{"project_info":{"project_number":"000000000000","project_id":"property-dealer-app","storage_bucket":"property-dealer-app.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000","android_client_info":{"package_name":"com.propertydealer.app"}},"oauth_client":[],"api_key":[{"current_key":"AIzaSyDummyKeyReplaceWithRealOne"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}' > google-services.json
       - name: Fix build.gradle
         working-directory: PropertyDealerApp
         run: |
           cat > build.gradle << 'EOF'
           buildscript {
               ext.kotlin_version = '1.9.0'
-              repositories {
-                  google()
-                  mavenCentral()
-              }
+              repositories { google(); mavenCentral() }
               dependencies {
                   classpath 'com.android.tools.build:gradle:8.1.0'
                   classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+                  classpath 'com.google.gms:google-services:4.4.0'
               }
           }
           EOF
-
       - name: Fix settings.gradle
         working-directory: PropertyDealerApp
         run: |
           cat > settings.gradle << 'EOF'
           pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
           }
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
+              repositories { google(); mavenCentral() }
           }
           rootProject.name = "PropertyDealerApp"
           include ':app'
           EOF
-
-      - name: Fix colors.xml
+      - name: Fix colors
         working-directory: PropertyDealerApp
         run: |
           cat > app/src/main/res/values/colors.xml << 'EOF'
@@ -93,86 +71,34 @@ jobs:
               <color name="statusNegotiating">#6A1B9A</color>
           </resources>
           EOF
-
-      - name: Fix adaptive icons
+      - name: Fix icons
         working-directory: PropertyDealerApp
         run: |
           mkdir -p app/src/main/res/mipmap-anydpi-v26
-          cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@color/colorPrimary"/>
-              <foreground android:drawable="@drawable/ic_property"/>
-          </adaptive-icon>
-          EOF
-          cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
-             app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-          for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-            echo '<?xml version="1.0" encoding="utf-8"?><resources/>' > \
-              app/src/main/res/mipmap-${density}/ic_launcher.xml
-            cp app/src/main/res/mipmap-${density}/ic_launcher.xml \
-               app/src/main/res/mipmap-${density}/ic_launcher_round.xml
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@color/colorPrimary"/><foreground android:drawable="@drawable/ic_property"/></adaptive-icon>' > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            printf '<?xml version="1.0" encoding="utf-8"?><resources/>' > app/src/main/res/mipmap-${d}/ic_launcher.xml
+            cp app/src/main/res/mipmap-${d}/ic_launcher.xml app/src/main/res/mipmap-${d}/ic_launcher_round.xml
           done
-
-      - name: Fix AndroidManifest
+      - name: Remove old Room files
         working-directory: PropertyDealerApp
+        run: rm -f app/src/main/java/com/propertydealer/app/data/db/*.kt
+      - name: Install Gradle
         run: |
-          sed -i 's/package="com.propertydealer.app"//' \
-            app/src/main/AndroidManifest.xml
-
-      - name: Fix PropertyDetailActivity - action_share_dealer
-        working-directory: PropertyDealerApp
-        run: |
-          sed -i 's/R.id.action_share_dealer/R.id.action_full_report/g' \
-            app/src/main/java/com/propertydealer/app/ui/property/PropertyDetailActivity.kt
-
-      - name: Fix AddEditPropertyActivity - remove missing binding refs
-        working-directory: PropertyDealerApp
-        run: |
-          sed -i '/editTextSellerAskingPrice/d' \
-            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt
-          sed -i '/editTextCommissionPercent/d' \
-            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt
-          sed -i '/commissionPct/d' \
-            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt
-          sed -i '/commissionAmt/d' \
-            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt
-          sed -i '/getFilteredProperties/d' \
-            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt
-
-      - name: Fix MainActivity - remove missing ViewModel refs
-        working-directory: PropertyDealerApp
-        run: |
-          sed -i '/setSearchQuery/d' \
-            app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt
-          sed -i '/setStatusFilter/d' \
-            app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt
-          sed -i '/setTypeFilter/d' \
-            app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt
-          sed -i '/operationStatus/d' \
-            app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt
-          sed -i '/getFilteredProperties/d' \
-            app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt
-
-      - name: Install Gradle 8.0
-        run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.0-bin.zip \
-            -O gradle.zip
-          unzip -q gradle.zip -d /opt/gradle
-
-      - name: Generate Gradle Wrapper
+          wget -q https://services.gradle.org/distributions/gradle-8.0-bin.zip -O g.zip
+          unzip -q g.zip -d /opt/gradle
+      - name: Generate wrapper
         working-directory: PropertyDealerApp
         run: |
           /opt/gradle/gradle-8.0/bin/gradle wrapper --gradle-version 8.0
           chmod +x gradlew
-
-      - name: Build Debug APK
+      - name: Build APK
         working-directory: PropertyDealerApp
         run: ./gradlew assembleDebug --stacktrace
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: PropertyDealerApp-debug
+          name: PropertyDealerApp-v3
           path: PropertyDealerApp/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
