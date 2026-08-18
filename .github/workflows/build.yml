@@ -142,7 +142,7 @@ jobs:
       - name: Remove old Room files
         working-directory: PropertyDealerApp
         run: rm -f app/src/main/java/com/propertydealer/app/data/db/*.kt
-      - name: Fix PropertyViewModel
+      - name: Rewrite PropertyViewModel
         working-directory: PropertyDealerApp
         run: |
           cat > app/src/main/java/com/propertydealer/app/ui/property/PropertyViewModel.kt << 'EOF'
@@ -187,7 +187,9 @@ jobs:
               fun searchProperties(query: String): LiveData<List<Property>> {
                   val result = MutableLiveData<List<Property>>()
                   val q = query.lowercase()
-                  allProperties.observeForever { list -> result.postValue(list.filter { it.name.lowercase().contains(q) || it.address.lowercase().contains(q) || it.sellerName.lowercase().contains(q) }) }
+                  allProperties.observeForever { list ->
+                      result.postValue(list.filter { it.name.lowercase().contains(q) || it.address.lowercase().contains(q) || it.sellerName.lowercase().contains(q) || it.locality.lowercase().contains(q) })
+                  }
                   return result
               }
               fun getBuyersForProperty(propertyId: String): LiveData<List<Buyer>> {
@@ -234,43 +236,365 @@ jobs:
               }
           }
           EOF
-      - name: Fix Kotlin code errors
+      - name: Rewrite PropertyAdapter
         working-directory: PropertyDealerApp
         run: |
-          # Fix area/areaUnit references
-          for f in \
-            app/src/main/java/com/propertydealer/app/ui/adapters/PropertyAdapter.kt \
-            app/src/main/java/com/propertydealer/app/utils/ShareUtils.kt \
-            app/src/main/java/com/propertydealer/app/ui/tools/PropertyCompareActivity.kt \
-            app/src/main/java/com/propertydealer/app/ui/property/PropertyDetailActivity.kt \
-            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt; do
-            sed -i 's/\.area\b/.totalSqYard.toString()/g' "$f" 2>/dev/null || true
-            sed -i 's/\.areaUnit/"sq.yd"/g' "$f" 2>/dev/null || true
-          done
-          # Fix action_share_dealer
-          sed -i 's/action_share_dealer/action_full_report/g' \
-            app/src/main/java/com/propertydealer/app/ui/property/PropertyDetailActivity.kt
-          # Remove stale references
-          for f in \
-            app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt \
-            app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt; do
-            sed -i '/setSearchQuery\|setStatusFilter\|setTypeFilter\|operationStatus\|getFilteredProperties\|AppDatabase\|editTextArea\b\|autoCompleteAreaUnit\|editTextPropertyName\|tilPropertyName\|tilAddress\b\|tilSellerName\|tilSellerPhone/d' "$f" 2>/dev/null || true
-          done
-          # Fix Long to String type mismatches for IDs
-          for f in \
-            app/src/main/java/com/propertydealer/app/ui/buyer/AddBuyerActivity.kt \
-            app/src/main/java/com/propertydealer/app/ui/negotiation/NegotiationActivity.kt \
-            app/src/main/java/com/propertydealer/app/ui/appointment/AppointmentActivity.kt \
-            app/src/main/java/com/propertydealer/app/ui/document/DocumentManagerActivity.kt; do
-            sed -i 's/getLongExtra(\(.*\), -1L)/getStringExtra(\1) ?: ""/g' "$f" 2>/dev/null || true
-            sed -i '/AppDatabase\|import.*db\b/d' "$f" 2>/dev/null || true
-          done
-          # Fix GuestPropertyDetailActivity
-          sed -i 's/FormatUtils.getStatusColor(this,/FormatUtils.getStatusColor(/g' \
-            app/src/main/java/com/propertydealer/app/ui/guest/GuestPropertyDetailActivity.kt 2>/dev/null || true
-          sed -i '/private suspend fun.*await/,/^          }/d' \
-            app/src/main/java/com/propertydealer/app/ui/guest/GuestPropertyDetailActivity.kt 2>/dev/null || true
-          echo "All fixes done"
+          cat > app/src/main/java/com/propertydealer/app/ui/adapters/PropertyAdapter.kt << 'EOF'
+          package com.propertydealer.app.ui.adapters
+          import android.view.LayoutInflater
+          import android.view.View
+          import android.view.ViewGroup
+          import android.widget.ImageButton
+          import android.widget.TextView
+          import androidx.recyclerview.widget.DiffUtil
+          import androidx.recyclerview.widget.ListAdapter
+          import androidx.recyclerview.widget.RecyclerView
+          import com.propertydealer.app.R
+          import com.propertydealer.app.data.model.Property
+          import com.propertydealer.app.utils.FormatUtils
+          import java.text.SimpleDateFormat
+          import java.util.*
+          class PropertyAdapter(
+              private val onItemClick: (Property) -> Unit,
+              private val onEditClick: (Property) -> Unit,
+              private val onDeleteClick: (Property) -> Unit
+          ) : ListAdapter<Property, PropertyAdapter.ViewHolder>(DiffCallback()) {
+              inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+                  val textName: TextView = view.findViewById(R.id.textPropertyName)
+                  val textAddress: TextView = view.findViewById(R.id.textPropertyAddress)
+                  val textPrice: TextView = view.findViewById(R.id.textPropertyPrice)
+                  val textType: TextView = view.findViewById(R.id.textPropertyType)
+                  val textArea: TextView = view.findViewById(R.id.textPropertyArea)
+                  val textStatus: TextView = view.findViewById(R.id.textPropertyStatus)
+                  val textDate: TextView = view.findViewById(R.id.textPropertyDate)
+                  val btnEdit: ImageButton = view.findViewById(R.id.btnEdit)
+                  val btnDelete: ImageButton = view.findViewById(R.id.btnDelete)
+              }
+              override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = ViewHolder(
+                  LayoutInflater.from(parent.context).inflate(R.layout.item_property, parent, false)
+              )
+              override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+                  val p = getItem(position)
+                  holder.textName.text = p.name
+                  holder.textAddress.text = p.address
+                  holder.textPrice.text = FormatUtils.formatCurrencyShort(p.totalPrice)
+                  holder.textType.text = p.propertyType
+                  holder.textStatus.text = p.status
+                  holder.textDate.text = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(p.createdAt))
+                  val size = buildString {
+                      if (p.width > 0 && p.depth > 0) append("${p.width.toInt()}x${p.depth.toInt()} ft  ")
+                      if (p.totalSqFeet > 0) append("${p.totalSqFeet.toInt()} sq.ft  ")
+                      if (p.totalSqYard > 0) append("${String.format("%.1f", p.totalSqYard)} sq.yd")
+                  }
+                  holder.textArea.text = size
+                  holder.textArea.visibility = if (size.isBlank()) View.GONE else View.VISIBLE
+                  holder.itemView.setOnClickListener { onItemClick(p) }
+                  holder.btnEdit.setOnClickListener { onEditClick(p) }
+                  holder.btnDelete.setOnClickListener { onDeleteClick(p) }
+              }
+              class DiffCallback : DiffUtil.ItemCallback<Property>() {
+                  override fun areItemsTheSame(a: Property, b: Property) = a.id == b.id
+                  override fun areContentsTheSame(a: Property, b: Property) = a == b
+              }
+          }
+          EOF
+      - name: Rewrite ShareUtils
+        working-directory: PropertyDealerApp
+        run: |
+          cat > app/src/main/java/com/propertydealer/app/utils/ShareUtils.kt << 'EOF'
+          package com.propertydealer.app.utils
+          import com.propertydealer.app.data.model.Buyer
+          import com.propertydealer.app.data.model.Property
+          object ShareUtils {
+              fun generateBuyerShareText(property: Property): String {
+                  val sizeInfo = buildString {
+                      if (property.width > 0 && property.depth > 0) append("${property.width.toInt()} x ${property.depth.toInt()} ft | ")
+                      if (property.totalSqFeet > 0) append("${property.totalSqFeet.toInt()} sq.ft | ")
+                      if (property.totalSqYard > 0) append("${String.format("%.1f", property.totalSqYard)} sq.yd")
+                  }
+                  return buildString {
+                      appendLine("🏠 *${property.name}*")
+                      appendLine("📍 ${property.locality.ifEmpty { property.address }}")
+                      if (sizeInfo.isNotBlank()) appendLine("📐 $sizeInfo")
+                      if (property.frontRoadSize > 0) appendLine("🛣️ Front Road: ${property.frontRoadSize.toInt()} ft")
+                      if (property.facing.isNotEmpty()) appendLine("🧭 Facing: ${property.facing}")
+                      appendLine("🏗️ Type: ${property.propertyType}")
+                      if (property.totalPrice > 0) appendLine("💰 Price: ${FormatUtils.formatCurrencyShort(property.totalPrice)}")
+                      if (property.pricePerSqYard > 0) appendLine("💰 Rate: ${FormatUtils.formatCurrencyShort(property.pricePerSqYard)}/sq.yd")
+                      appendLine("📊 Status: ${property.status}")
+                      if (property.sellerPhone.isNotEmpty()) appendLine("📞 Contact: ${FormatUtils.maskPhoneNumber(property.sellerPhone)}")
+                      if (property.description.isNotEmpty()) appendLine("\n${property.description}")
+                  }
+              }
+              fun generateDealerShareText(property: Property, buyers: List<Buyer> = emptyList()): String {
+                  val sizeInfo = buildString {
+                      if (property.width > 0 && property.depth > 0) append("${property.width.toInt()} x ${property.depth.toInt()} ft | ")
+                      if (property.totalSqFeet > 0) append("${property.totalSqFeet.toInt()} sq.ft | ")
+                      if (property.totalSqYard > 0) append("${String.format("%.1f", property.totalSqYard)} sq.yd")
+                  }
+                  return buildString {
+                      appendLine("🏠 *${property.name}* — DEALER REPORT")
+                      appendLine("📍 ${property.address}")
+                      if (sizeInfo.isNotBlank()) appendLine("📐 $sizeInfo")
+                      if (property.frontRoadSize > 0) appendLine("🛣️ Front Road: ${property.frontRoadSize.toInt()} ft")
+                      if (property.facing.isNotEmpty()) appendLine("🧭 Facing: ${property.facing}")
+                      appendLine("🏗️ Type: ${property.propertyType}")
+                      appendLine("💰 Total: ${FormatUtils.formatCurrencyShort(property.totalPrice)}")
+                      if (property.whitePrice > 0) appendLine("   White: ${FormatUtils.formatCurrencyShort(property.whitePrice)}")
+                      if (property.blackPrice > 0) appendLine("   Black: ${FormatUtils.formatCurrencyShort(property.blackPrice)}")
+                      if (property.pricePerSqYard > 0) appendLine("   Rate: ${FormatUtils.formatCurrencyShort(property.pricePerSqYard)}/sq.yd")
+                      appendLine("📊 Status: ${property.status}")
+                      appendLine("\n👤 SELLER")
+                      appendLine("Name: ${property.sellerName}")
+                      appendLine("Phone: ${property.sellerPhone}")
+                      if (property.sellerAltPhone.isNotEmpty()) appendLine("Alt: ${property.sellerAltPhone}")
+                      if (buyers.isNotEmpty()) {
+                          appendLine("\n👥 BUYERS (${buyers.size})")
+                          buyers.forEach { b ->
+                              appendLine("• ${b.name} — ${FormatUtils.formatCurrencyShort(b.offeredPrice)} [${b.status}]")
+                          }
+                      }
+                      if (property.notes.isNotEmpty()) appendLine("\n📝 Notes: ${property.notes}")
+                  }
+              }
+          }
+          EOF
+      - name: Rewrite GuestPropertyDetailActivity
+        working-directory: PropertyDealerApp
+        run: |
+          cat > app/src/main/java/com/propertydealer/app/ui/guest/GuestPropertyDetailActivity.kt << 'EOF'
+          package com.propertydealer.app.ui.guest
+          import android.content.Intent
+          import android.os.Bundle
+          import android.view.View
+          import androidx.appcompat.app.AppCompatActivity
+          import androidx.lifecycle.lifecycleScope
+          import com.propertydealer.app.data.model.GuestSettings
+          import com.propertydealer.app.data.model.Property
+          import com.propertydealer.app.databinding.ActivityGuestPropertyDetailBinding
+          import com.propertydealer.app.firebase.FirebaseRepository
+          import com.propertydealer.app.firebase.UserSession
+          import com.propertydealer.app.utils.FormatUtils
+          import com.google.firebase.firestore.ListenerRegistration
+          import kotlinx.coroutines.launch
+          class GuestPropertyDetailActivity : AppCompatActivity() {
+              companion object {
+                  const val EXTRA_PROPERTY_ID = "extra_property_id"
+                  const val EXTRA_DEALER_ID = "extra_dealer_id"
+              }
+              private lateinit var binding: ActivityGuestPropertyDetailBinding
+              private var settingsListener: ListenerRegistration? = null
+              private var currentSettings: GuestSettings? = null
+              private var currentProperty: Property? = null
+              private var propertyId = ""
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  binding = ActivityGuestPropertyDetailBinding.inflate(layoutInflater)
+                  setContentView(binding.root)
+                  propertyId = intent.getStringExtra(EXTRA_PROPERTY_ID) ?: ""
+                  setSupportActionBar(binding.toolbar)
+                  supportActionBar?.setDisplayHomeAsUpEnabled(true)
+                  binding.toolbar.setNavigationOnClickListener { finish() }
+                  settingsListener = FirebaseRepository.listenToGuestSettings { settings ->
+                      currentSettings = settings
+                      currentProperty?.let { renderProperty(it, settings) }
+                  }
+                  lifecycleScope.launch {
+                      val property = FirebaseRepository.getProperty(propertyId)
+                      property?.let {
+                          currentProperty = it
+                          renderProperty(it, currentSettings ?: GuestSettings())
+                      }
+                  }
+              }
+              private fun renderProperty(p: Property, s: GuestSettings) {
+                  supportActionBar?.title = p.name
+                  supportActionBar?.subtitle = p.propertyType
+                  binding.textLocation.text = if (s.showExactAddress) p.address else p.locality.ifEmpty { "Location not disclosed" }
+                  if (s.showSize) {
+                      binding.cardSize.visibility = View.VISIBLE
+                      binding.textSize.text = buildString {
+                          if (p.width > 0 && p.depth > 0) append("${p.width.toInt()} x ${p.depth.toInt()} ft\n")
+                          if (p.totalSqFeet > 0) append("${p.totalSqFeet.toInt()} sq.ft")
+                          if (p.totalSqYard > 0) append("  |  ${String.format("%.2f", p.totalSqYard)} sq.yd")
+                          if (p.frontRoadSize > 0) append("\nFront Road: ${p.frontRoadSize.toInt()} ft")
+                      }
+                  } else binding.cardSize.visibility = View.GONE
+                  if (s.showFacing && p.facing.isNotEmpty()) { binding.textFacing.visibility = View.VISIBLE; binding.textFacing.text = "Facing: ${p.facing}" } else binding.textFacing.visibility = View.GONE
+                  if (s.showPropertyType) binding.textType.text = p.propertyType
+                  if (s.showPrice) {
+                      binding.cardPrice.visibility = View.VISIBLE
+                      binding.textPrice.text = FormatUtils.formatCurrencyShort(p.totalPrice)
+                      if (s.showPricePerSqYard && p.pricePerSqYard > 0) { binding.textPricePerSqYard.visibility = View.VISIBLE; binding.textPricePerSqYard.text = "${FormatUtils.formatCurrencyShort(p.pricePerSqYard)} / sq.yd" } else binding.textPricePerSqYard.visibility = View.GONE
+                  } else binding.cardPrice.visibility = View.GONE
+                  if (s.showSellerName && p.sellerName.isNotEmpty()) { binding.textSellerName.visibility = View.VISIBLE; binding.textSellerName.text = "Owner: ${p.sellerName}" } else binding.textSellerName.visibility = View.GONE
+                  if (s.showPhone && p.sellerPhone.isNotEmpty()) {
+                      binding.btnCallSeller.visibility = View.VISIBLE
+                      binding.btnCallSeller.text = "\uD83D\uDCDE ${FormatUtils.maskPhoneNumber(p.sellerPhone)}"
+                      binding.btnCallSeller.setOnClickListener { startActivity(Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:${p.sellerPhone}"))) }
+                  } else binding.btnCallSeller.visibility = View.GONE
+                  if (p.description.isNotEmpty()) { binding.textDescription.visibility = View.VISIBLE; binding.textDescription.text = p.description } else binding.textDescription.visibility = View.GONE
+                  if (p.extraFeatures.isNotEmpty()) { binding.textExtraFeatures.visibility = View.VISIBLE; binding.textExtraFeatures.text = "Features: ${p.extraFeatures}" } else binding.textExtraFeatures.visibility = View.GONE
+                  binding.textStatus.text = p.status
+                  binding.textStatus.setTextColor(FormatUtils.getStatusColor(p.status))
+                  if (s.allowContactDealer) {
+                      binding.btnContactDealer.visibility = View.VISIBLE
+                      binding.btnContactDealer.setOnClickListener {
+                          val ph = currentSettings?.dealerPhone ?: ""
+                          if (ph.isNotEmpty()) startActivity(Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:$ph")))
+                      }
+                  } else binding.btnContactDealer.visibility = View.GONE
+              }
+              override fun onDestroy() { super.onDestroy(); settingsListener?.remove() }
+          }
+          EOF
+      - name: Rewrite PropertyCompareActivity
+        working-directory: PropertyDealerApp
+        run: |
+          cat > app/src/main/java/com/propertydealer/app/ui/tools/PropertyCompareActivity.kt << 'EOF'
+          package com.propertydealer.app.ui.tools
+          import android.os.Bundle
+          import android.view.View
+          import androidx.activity.viewModels
+          import androidx.appcompat.app.AppCompatActivity
+          import com.propertydealer.app.data.model.Property
+          import com.propertydealer.app.databinding.ActivityPropertyCompareBinding
+          import com.propertydealer.app.ui.property.PropertyViewModel
+          import com.propertydealer.app.ui.property.PropertyViewModelFactory
+          import com.propertydealer.app.utils.FormatUtils
+          class PropertyCompareActivity : AppCompatActivity() {
+              private lateinit var binding: ActivityPropertyCompareBinding
+              private val viewModel: PropertyViewModel by viewModels { PropertyViewModelFactory(application) }
+              private var propertyA: Property? = null
+              private var propertyB: Property? = null
+              companion object {
+                  const val EXTRA_PROPERTY_A_ID = "extra_prop_a"
+                  const val EXTRA_PROPERTY_B_ID = "extra_prop_b"
+              }
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  binding = ActivityPropertyCompareBinding.inflate(layoutInflater)
+                  setContentView(binding.root)
+                  setSupportActionBar(binding.toolbar)
+                  supportActionBar?.setDisplayHomeAsUpEnabled(true)
+                  supportActionBar?.title = "Compare Properties"
+                  binding.toolbar.setNavigationOnClickListener { finish() }
+                  val aId = intent.getStringExtra(EXTRA_PROPERTY_A_ID) ?: ""
+                  val bId = intent.getStringExtra(EXTRA_PROPERTY_B_ID) ?: ""
+                  if (aId.isNotEmpty()) viewModel.getPropertyById(aId) { propertyA = it; renderCompare() }
+                  if (bId.isNotEmpty()) viewModel.getPropertyById(bId) { propertyB = it; renderCompare() }
+                  binding.btnPickA.setOnClickListener { }
+                  binding.btnPickB.setOnClickListener { }
+              }
+              private fun renderCompare() {
+                  val a = propertyA
+                  val b = propertyB
+                  binding.tableCompare.visibility = View.VISIBLE
+                  a?.let {
+                      binding.textAName.text = it.name
+                      binding.textAPrice.text = FormatUtils.formatCurrencyShort(it.totalPrice)
+                      binding.textAAskingPrice.text = FormatUtils.formatCurrencyShort(it.sellerAskingPrice)
+                      val sizeA = buildString {
+                          if (it.totalSqFeet > 0) append("${it.totalSqFeet.toInt()} sq.ft / ")
+                          if (it.totalSqYard > 0) append("${String.format("%.1f", it.totalSqYard)} sq.yd")
+                      }
+                      binding.textAArea.text = sizeA.ifEmpty { "-" }
+                      binding.textAType.text = it.propertyType
+                      binding.textAStatus.text = it.status
+                      binding.textAFloor.text = it.floor.ifEmpty { "-" }
+                      binding.textAParking.text = if (it.parking) "Yes" else "No"
+                      binding.textAFurnished.text = it.furnished
+                      binding.textAFacing.text = it.facing.ifEmpty { "-" }
+                  }
+                  b?.let {
+                      binding.textBName.text = it.name
+                      binding.textBPrice.text = FormatUtils.formatCurrencyShort(it.totalPrice)
+                      binding.textBAskingPrice.text = FormatUtils.formatCurrencyShort(it.sellerAskingPrice)
+                      val sizeB = buildString {
+                          if (it.totalSqFeet > 0) append("${it.totalSqFeet.toInt()} sq.ft / ")
+                          if (it.totalSqYard > 0) append("${String.format("%.1f", it.totalSqYard)} sq.yd")
+                      }
+                      binding.textBArea.text = sizeB.ifEmpty { "-" }
+                      binding.textBType.text = it.propertyType
+                      binding.textBStatus.text = it.status
+                      binding.textBFloor.text = it.floor.ifEmpty { "-" }
+                      binding.textBParking.text = if (it.parking) "Yes" else "No"
+                      binding.textBFurnished.text = it.furnished
+                      binding.textBFacing.text = it.facing.ifEmpty { "-" }
+                  }
+                  if (a != null && b != null) {
+                      binding.textPriceWinner.text = if (a.totalPrice <= b.totalPrice) "${a.name} is cheaper" else "${b.name} is cheaper"
+                  }
+              }
+          }
+          EOF
+      - name: Fix remaining Kotlin files with Python
+        working-directory: PropertyDealerApp
+        run: |
+          python3 << 'PYEOF'
+          import re, os
+
+          def fix(path, replacements):
+              if not os.path.exists(path): print(f"SKIP {path}"); return
+              with open(path, 'r') as f: content = f.read()
+              for old, new in replacements:
+                  content = content.replace(old, new)
+              with open(path, 'w') as f: f.write(content)
+              print(f"Fixed: {path}")
+
+          # Fix PropertyDetailActivity
+          fix("app/src/main/java/com/propertydealer/app/ui/property/PropertyDetailActivity.kt", [
+              ("action_share_dealer", "action_full_report"),
+              (".area ", ".totalSqYard.toString() "),
+              (".areaUnit", "\"sq.yd\""),
+              ("property.area\n", "property.totalSqYard.toString()\n"),
+          ])
+
+          # Fix AddEditPropertyActivity - remove broken lines
+          path = "app/src/main/java/com/propertydealer/app/ui/property/AddEditPropertyActivity.kt"
+          if os.path.exists(path):
+              with open(path) as f: lines = f.readlines()
+              bad_keywords = ["autoCompleteAreaUnit", "editTextArea", "getFilteredProperties",
+                              "AppDatabase", "editTextPropertyName", "tilPropertyName",
+                              "tilAddress", "tilSellerName", "tilSellerPhone",
+                              "setSearchQuery", "setStatusFilter", "setTypeFilter",
+                              "operationStatus"]
+              clean = [l for l in lines if not any(k in l for k in bad_keywords)]
+              with open(path, 'w') as f: f.writelines(clean)
+              print(f"Fixed: {path}")
+
+          # Fix MainActivity - remove broken lines
+          path = "app/src/main/java/com/propertydealer/app/ui/property/MainActivity.kt"
+          if os.path.exists(path):
+              with open(path) as f: lines = f.readlines()
+              bad = ["setSearchQuery", "setStatusFilter", "setTypeFilter",
+                     "operationStatus", "getFilteredProperties"]
+              clean = [l for l in lines if not any(k in l for k in bad)]
+              with open(path, 'w') as f: f.writelines(clean)
+              print(f"Fixed: {path}")
+
+          # Fix AddBuyerActivity, NegotiationActivity, AppointmentActivity, DocumentManagerActivity
+          for path in [
+              "app/src/main/java/com/propertydealer/app/ui/buyer/AddBuyerActivity.kt",
+              "app/src/main/java/com/propertydealer/app/ui/negotiation/NegotiationActivity.kt",
+              "app/src/main/java/com/propertydealer/app/ui/appointment/AppointmentActivity.kt",
+              "app/src/main/java/com/propertydealer/app/ui/document/DocumentManagerActivity.kt",
+          ]:
+              if not os.path.exists(path): continue
+              with open(path) as f: lines = f.readlines()
+              bad = ["AppDatabase", "import com.propertydealer.app.data.db"]
+              clean = []
+              for l in lines:
+                  if any(k in l for k in bad): continue
+                  l = l.replace("getLongExtra(EXTRA_PROPERTY_ID, -1L)", 'getStringExtra(EXTRA_PROPERTY_ID) ?: ""')
+                  l = l.replace("getLongExtra(EXTRA_BUYER_ID, -1L)", 'getStringExtra(EXTRA_BUYER_ID) ?: ""')
+                  l = l.replace(", -1L)", ', "") ?: "")')
+                  clean.append(l)
+              with open(path, 'w') as f: f.writelines(clean)
+              print(f"Fixed: {path}")
+
+          print("All Python fixes done!")
+          PYEOF
       - name: Install Gradle 8.7
         run: |
           wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip -O g.zip
