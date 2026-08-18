@@ -31,7 +31,7 @@ jobs:
               ext.kotlin_version = '1.9.0'
               repositories { google(); mavenCentral() }
               dependencies {
-                  classpath 'com.android.tools.build:gradle:8.6.0'
+                  classpath 'com.android.tools.build:gradle:8.3.2'
                   classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
                   classpath 'com.google.gms:google-services:4.4.0'
               }
@@ -140,14 +140,14 @@ jobs:
       - name: Remove old Room files
         working-directory: PropertyDealerApp
         run: rm -f app/src/main/java/com/propertydealer/app/data/db/*.kt
-      - name: Install Gradle 8.6
+      - name: Install Gradle 8.7
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.6-bin.zip -O g.zip
+          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip -O g.zip
           unzip -q g.zip -d /opt/gradle
       - name: Generate wrapper
         working-directory: PropertyDealerApp
         run: |
-          /opt/gradle/gradle-8.6/bin/gradle wrapper --gradle-version 8.6
+          /opt/gradle/gradle-8.7/bin/gradle wrapper --gradle-version 8.7
           chmod +x gradlew
       - name: Build APK
         working-directory: PropertyDealerApp
